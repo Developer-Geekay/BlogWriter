@@ -1,0 +1,35 @@
+{
+  "name": "blogwriter",
+  "version": "0.1.0",
+  "private": true,
+  "description": "AI-assisted blog and LinkedIn content pipeline for gokulakannan.dev",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "cli": "tsx src/cli.ts",
+    "draft": "tsx src/cli.ts draft",
+    "status": "tsx src/cli.ts status",
+    "validate": "tsx src/cli.ts validate",
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.115.0",
+    "commander": "^15.0.0",
+    "dotenv": "^17.4.2",
+    "gray-matter": "^4.0.3",
+    "ulid": "^3.0.2",
+    "yaml": "^2.9.0",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "tsx": "^4.23.1",
+    "typescript": "^5.7.0",
+    "vitest": "^4.1.10"
+  }
+}

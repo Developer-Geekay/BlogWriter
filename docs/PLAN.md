@@ -248,7 +248,7 @@ map) so a local dev run against `http://localhost:3000` is a one-line change.
 
 | Phase | Deliverable | Blocked on |
 |---|---|---|
-| **1. Foundation** | TS scaffold, config schemas, Anthropic client, content store, `draft` command writing Markdown locally. Fully usable offline. | — |
+| **1. Foundation** ✅ | TS scaffold, config schemas, Claude client, content store, `draft`/`status`/`validate` commands. Shipped. | — |
 | **2. Review gate** | `generate.yml` cron → drafts → opens a PR with the content. The loop is real from here. | — |
 | **3. Website** | `gokulakannan.dev` adapter, slug validation, draft-preview flow (incl. the `/blog/{slug}` draft-rendering check). | `API_SECRET_KEY` |
 | **4. LinkedIn** | `linkedin:auth` CLI, Posts API adapter, image upload, token-health workflow. | Your LinkedIn app + product approval |

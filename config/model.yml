@@ -1,0 +1,26 @@
+# Model settings. Everything here has a working default — this file only exists
+# so you can tune cost and depth without touching code.
+
+id: claude-opus-5
+
+# Effort controls how much the model deliberates. Higher costs more and takes
+# longer. These defaults front-load effort where it shows: research and the
+# actual writing.
+effort:
+  research: high
+  draft: xhigh
+  edit: high
+  verify: high
+  metadata: low
+  repurpose: medium
+
+# Output ceiling per call. Raise if long posts get truncated.
+maxTokens: 32000
+
+# Cap on web searches during the research stage.
+maxSearches: 8
+
+# Re-run a request on a fallback model if Claude's safety classifiers decline
+# it. Safe to leave on: if the beta isn't enabled for your account, the client
+# notices and retries without it.
+refusalFallback: true

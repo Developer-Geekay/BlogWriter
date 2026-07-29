@@ -1,0 +1,12 @@
+# The gokulakannan.dev Blog Posts API.
+#
+# For a local run against the Next.js dev server, change baseUrl to
+# http://localhost:3000. Used from phase 3 onward; nothing here is read during
+# drafting.
+
+baseUrl: https://gokulakannan.dev
+postsPath: /api/posts
+blogPath: /blog
+
+# Bearer token matching API_SECRET_KEY on the server.
+tokenEnv: WEBSITE_API_TOKEN

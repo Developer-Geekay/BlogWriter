@@ -1,0 +1,17 @@
+# What to write about.
+#
+# `backlog` is the queue the scheduled workflow will pull from (phase 2).
+# `themes` describes the territory, for generating new ideas.
+# `avoid` keeps the pipeline off angles you have already covered or don't want.
+
+themes: []
+  # - Practical tradeoffs in building with LLMs
+  # - Things that break at scale that don't break in a demo
+
+backlog: []
+  # - Why retrieval quality matters more than context window size
+  # - What I got wrong the first time I shipped a background job queue
+
+avoid: []
+  # - Generic "top 10 tools" roundups
+  # - Anything requiring access to private work code

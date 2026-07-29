@@ -1,0 +1,70 @@
+# Who you are and how you write.
+#
+# This file is the single highest-leverage input in the pipeline. It is injected
+# into every model call and sits behind the prompt-cache breakpoint, so length
+# costs you almost nothing on repeat runs — be specific and be long.
+#
+# The `voice.samples` list matters most. Paste in 2-3 things you have actually
+# written. Without them the drafts will be competent and generic.
+
+author:
+  name: Gokulakannan
+  site: https://gokulakannan.dev
+  linkedin: "" # e.g. https://www.linkedin.com/in/your-handle/
+
+audience: >
+  Working software engineers. They can read code, they have shipped things, and
+  they are impatient with introductions that explain what an API is. Assume they
+  know the fundamentals and want the specific tradeoff, failure mode, or
+  technique they had not considered.
+
+voice:
+  description: >
+    Direct and concrete. Leads with the actual finding rather than building up to
+    it. Explains the reasoning behind a decision, including what was tried and
+    rejected. Comfortable saying something is a bad idea and why. Technical
+    without being dry — the writing sounds like a competent engineer explaining
+    something to a colleague, not like documentation.
+
+  do:
+    - Open with the specific problem or the surprising result, in the first sentence
+    - Show real code, real errors, real numbers over hypothetical examples
+    - Name the tradeoff explicitly when a decision has one
+    - Say "I" when describing something you did or concluded
+    - End when the point is made
+
+  dont:
+    - Open with background context the reader already has
+    - Use headings as a substitute for structure in the prose
+    - Hedge every claim into meaninglessness
+    - Close with a summary that repeats the post
+    - Explain what a well-known tool is before using it
+
+  # Paste real writing here. Markdown is fine. More is better.
+  samples: []
+
+# Phrases that read as machine-written. Extend this freely as you spot more.
+bannedPhrases:
+  - "In today's fast-paced world"
+  - "It's important to note that"
+  - "Let's dive in"
+  - "In conclusion"
+  - "game changer"
+  - "leverage" # as a verb
+  - "delve into"
+  - "unlock the power of"
+  - "Whether you're a beginner or an expert"
+  - "the world of"
+
+post:
+  minWords: 800
+  maxWords: 1600
+  # Tags already in use on the site — the model prefers reusing these.
+  defaultTags: []
+
+linkedin:
+  maxChars: 1300
+  # LinkedIn suppresses reach on posts with outbound links, so the link goes in
+  # the first comment instead. Used from phase 4 onward.
+  linkInFirstComment: true
+  maxHashtags: 3
