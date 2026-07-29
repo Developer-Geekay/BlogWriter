@@ -76,6 +76,7 @@ export const LinkedInStateSchema = z.object({
   text: z.string().default(''),
   status: z.enum(['pending', 'published', 'failed', 'skipped']).default('pending'),
   postUrn: z.string().nullable().default(null),
+  commentUrn: z.string().nullable().default(null),
   publishedAt: z.preprocess((v) => (v instanceof Date ? v.toISOString() : v), z.string().nullable()).default(null),
   error: z.string().nullable().default(null),
 });

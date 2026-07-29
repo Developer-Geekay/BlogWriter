@@ -101,14 +101,14 @@ export class LinkedInPublisher {
   }
 
   /**
-   * Add a comment to a post.
+   * Add a comment to a post and return the comment URN.
    *
    * Used to put the blog link in the first comment: LinkedIn suppresses reach on
    * posts containing outbound links, so the link goes here instead of in the body.
    */
-  async comment(postUrn: string, text: string): Promise<void> {
+  async comment(postUrn: string, text: string): Promise<string> {
     const encoded = encodeURIComponent(postUrn);
-    await requestJson(`${API_BASE}/rest/socialActions/${encoded}/comments`, {
+    const { response } = await requestJson(`${API_BASE}/rest/socialActions/${encoded}/comments`, {
       target: TARGET,
       method: 'POST',
       headers: this.headers(),
@@ -119,6 +119,15 @@ export class LinkedInPublisher {
       }),
       fetchImpl: this.fetchImpl,
     });
+
+    const urn = response.headers.get('x-restli-id');
+    if (!urn) {
+      throw new PublishError(
+        TARGET,
+        'LinkedIn accepted the comment but returned no x-restli-id header.',
+      );
+    }
+    return urn;
   }
 
   /** Upload an image and return its URN, ready to attach to a post. */
@@ -141,7 +150,7 @@ export class LinkedInPublisher {
         Authorization: `Bearer ${this.credentials.accessToken}`,
         'Content-Type': contentType,
       },
-      body: bytes as unknown as BodyInit,
+      body: bytes,
     });
 
     if (!upload.ok) {

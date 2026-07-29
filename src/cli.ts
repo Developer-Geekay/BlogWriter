@@ -1,10 +1,15 @@
 #!/usr/bin/env node
+import open from 'open';
 import { Command } from 'commander';
 import { loadConfig, ConfigError, requireEnv } from './config/load.js';
 import { LlmClient, estimateCostUsd } from './llm/client.js';
 import { PostRepository } from './store/repository.js';
 import { postUrl } from './store/post.js';
 import { draftPost } from './pipeline/draft.js';
+import { publishPost } from './pipeline/publish.js';
+import { runAuthFlow } from './publishers/linkedin-auth.js';
+import { LinkedInPublisher } from './publishers/linkedin.js';
+import { WebsitePublisher } from './publishers/website.js';
 import { Logger } from './util/log.js';
 
 const program = new Command();
@@ -76,6 +81,113 @@ program
           `${fm.createdAt.slice(0, 10)}${flags.length ? `  [${flags.join(', ')}]` : ''}`,
       );
       if (fm.website.url) log.info(`  ${' '.repeat(10)} ${fm.website.url}`);
+    }
+  });
+
+program
+  .command('linkedin:auth')
+  .description('Run the OAuth flow to mint LinkedIn credentials and save them to .env')
+  .action(async () => {
+    const log = new Logger();
+    const config = await loadConfig();
+
+    const clientId = requireEnv('LINKEDIN_CLIENT_ID');
+    const clientSecret = requireEnv('LINKEDIN_CLIENT_SECRET');
+
+    log.heading('LinkedIn OAuth Flow');
+    log.info('1. A browser window will open to LinkedIn authorization');
+    log.info('2. Sign in and approve the app');
+    log.info('3. You will be redirected to localhost (this script listens there)');
+    log.info('');
+
+    try {
+      const result = await runAuthFlow({
+        clientId,
+        clientSecret,
+        port: 3000,
+        openUrl: (url: string) => {
+          log.info(`→ Opening browser to: ${url}`);
+          open(url).catch(() => {
+            log.warn('Could not auto-open browser. Copy the URL above and open it manually.');
+          });
+        },
+      });
+
+      log.success('✓ Authorization successful');
+      log.info('');
+      log.info('Add the following to your .env file:');
+      log.info(`LINKEDIN_ACCESS_TOKEN=${result.accessToken}`);
+      log.info(`LINKEDIN_PERSON_URN=${result.personUrn}`);
+      log.info('');
+      if (result.name) {
+        log.info(`Authorized as: ${result.name}`);
+      }
+      log.info(`Token expires: ${result.expiresAt}`);
+      if (result.refreshToken) {
+        log.info(`Refresh token: ${result.refreshToken}`);
+      }
+    } catch (err) {
+      log.error(`Authorization failed: ${(err as Error).message}`);
+      process.exit(1);
+    }
+  });
+
+program
+  .command('publish')
+  .description('Publish an approved post to the website and LinkedIn')
+  .requiredOption('-s, --slug <slug>', 'the post slug to publish')
+  .option('--no-linkedin', 'skip LinkedIn publishing (only post to website)')
+  .option('-q, --quiet', 'only print the result', false)
+  .action(async (opts: { slug: string; linkedin: boolean; quiet: boolean }) => {
+    const log = new Logger(opts.quiet);
+    const config = await loadConfig();
+    requireEnv('ANTHROPIC_API_KEY');
+
+    const repo = new PostRepository(config.contentDir);
+    const post = await repo.read(opts.slug);
+
+    if (post.frontmatter.status !== 'approved') {
+      log.error(`Cannot publish post with status "${post.frontmatter.status}". It must be approved.`);
+      process.exit(1);
+    }
+
+    const llm = new LlmClient(config.model);
+    const websitePublisher = new WebsitePublisher(config.website, requireEnv('WEBSITE_API_TOKEN'));
+
+    let linkedinPublisher: LinkedInPublisher | undefined;
+    if (opts.linkedin) {
+      const accessToken = requireEnv(config.linkedin.tokenEnv);
+      const personUrn = requireEnv(config.linkedin.personUrnEnv);
+      linkedinPublisher = new LinkedInPublisher(config.linkedin, {
+        accessToken,
+        personUrn,
+      });
+    }
+
+    try {
+      const { websiteUrl, linkedinPostUrn, usage } = await publishPost(post, {
+        config,
+        llm,
+        repo,
+        log,
+        websitePublisher,
+        linkedinPublisher,
+        skipLinkedIn: !opts.linkedin,
+      });
+
+      log.info('');
+      log.success('Published successfully');
+      log.info(`  website  ${websiteUrl}`);
+      if (linkedinPostUrn) {
+        log.info(`  linkedin ${linkedinPostUrn}`);
+      }
+      if (usage.inputTokens) {
+        log.info(`  cost     ~$${estimateCostUsd(usage).toFixed(3)}`);
+      }
+    } catch (err) {
+      log.error(`Publishing failed: ${(err as Error).message}`);
+      if (process.env['DEBUG']) console.error(err);
+      process.exit(1);
     }
   });
 

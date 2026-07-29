@@ -1,0 +1,64 @@
+name: Publish Post
+
+on:
+  pull_request:
+    types: [closed]
+    branches: [main]
+    paths:
+      - 'content/posts/**'
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    # Only run if the PR was merged (not just closed)
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Find changed posts
+        id: posts
+        run: |
+          # Find posts modified in the merged PR
+          POSTS=$(git diff --name-only origin/main^..HEAD -- 'content/posts/*.md' | sed 's|content/posts/||g' | sed 's|\.md$||g' | jq -Rs 'split("\n") | map(select(length > 0))')
+          echo "posts=$POSTS" >> $GITHUB_OUTPUT
+          echo "Found posts: $POSTS"
+
+      - name: Publish posts
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          WEBSITE_API_TOKEN: ${{ secrets.WEBSITE_API_TOKEN }}
+          LINKEDIN_ACCESS_TOKEN: ${{ secrets.LINKEDIN_ACCESS_TOKEN }}
+          LINKEDIN_PERSON_URN: ${{ secrets.LINKEDIN_PERSON_URN }}
+        run: |
+          POSTS='${{ steps.posts.outputs.posts }}'
+          echo "$POSTS" | jq -r '.[]' | while read SLUG; do
+            if [ -n "$SLUG" ]; then
+              echo "Publishing: $SLUG"
+              npm run cli -- publish --slug "$SLUG" || {
+                echo "Failed to publish $SLUG"
+                exit 1
+              }
+            fi
+          done
+
+      - name: Commit frontmatter updates
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add content/posts/
+          git commit -m "Update frontmatter with published URLs and URNs" || true
+          git push

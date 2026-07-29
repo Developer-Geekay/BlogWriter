@@ -1,0 +1,113 @@
+name: Token Health Check
+
+on:
+  schedule:
+    # Every Monday at 9am UTC
+    - cron: '0 9 * * 1'
+  workflow_dispatch:
+
+jobs:
+  check-token:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check LinkedIn token expiry
+        id: check
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          LINKEDIN_ACCESS_TOKEN: ${{ secrets.LINKEDIN_ACCESS_TOKEN }}
+          LINKEDIN_PERSON_URN: ${{ secrets.LINKEDIN_PERSON_URN }}
+        run: |
+          # Parse the expiry date from config
+          EXPIRY_WARNING_DAYS=$(grep -A 20 'expiryWarningDays:' config/linkedin.yml | head -1 | grep -oE '[0-9]+' || echo '7')
+          EXPIRY_DATE="${{ secrets.LINKEDIN_TOKEN_EXPIRES_AT }}"
+
+          if [ -z "$EXPIRY_DATE" ]; then
+            echo "token_expires_unknown=true" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          # Calculate days until expiry
+          EXPIRY_EPOCH=$(date -d "$EXPIRY_DATE" +%s)
+          NOW_EPOCH=$(date +%s)
+          DAYS_UNTIL_EXPIRY=$(( ($EXPIRY_EPOCH - $NOW_EPOCH) / 86400 ))
+
+          echo "days_until_expiry=$DAYS_UNTIL_EXPIRY" >> $GITHUB_OUTPUT
+          echo "expiry_date=$EXPIRY_DATE" >> $GITHUB_OUTPUT
+
+          if [ "$DAYS_UNTIL_EXPIRY" -le "$EXPIRY_WARNING_DAYS" ]; then
+            echo "token_expiring=true" >> $GITHUB_OUTPUT
+          else
+            echo "token_expiring=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Verify credentials work
+        if: env.LINKEDIN_ACCESS_TOKEN != ''
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          LINKEDIN_ACCESS_TOKEN: ${{ secrets.LINKEDIN_ACCESS_TOKEN }}
+          LINKEDIN_PERSON_URN: ${{ secrets.LINKEDIN_PERSON_URN }}
+        run: |
+          # Quick validation by calling the userinfo endpoint
+          curl -s -f -X GET "https://api.linkedin.com/v2/userinfo" \
+            -H "Authorization: Bearer $LINKEDIN_ACCESS_TOKEN" \
+            > /dev/null || {
+            echo "token_invalid=true" >> $GITHUB_OUTPUT
+            exit 0
+          }
+          echo "token_valid=true" >> $GITHUB_OUTPUT
+        continue-on-error: true
+
+      - name: Open token expiry issue
+        if: steps.check.outputs.token_expiring == 'true' || steps.check.outputs.token_expires_unknown == 'true'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const daysUntilExpiry = '${{ steps.check.outputs.days_until_expiry }}';
+            const expiryDate = '${{ steps.check.outputs.expiry_date }}';
+
+            let body = '## LinkedIn Token Expiring Soon\n\n';
+
+            if (daysUntilExpiry && daysUntilExpiry !== '') {
+              body += `The LinkedIn access token expires in **${daysUntilExpiry} days** (${expiryDate}).\n\n`;
+            } else {
+              body += 'The LinkedIn access token expiry date is not set. ';
+              body += 'Run `npm run cli -- linkedin:auth` locally and add the token details to GitHub Secrets.\n\n';
+            }
+
+            body += '### Action Required\n\n';
+            body += '1. Run `npm run cli -- linkedin:auth` locally\n';
+            body += '2. Add the new token and expiry date to GitHub Secrets:\n';
+            body += '   - `LINKEDIN_ACCESS_TOKEN`\n';
+            body += '   - `LINKEDIN_PERSON_URN`\n';
+            body += '   - `LINKEDIN_TOKEN_EXPIRES_AT`\n';
+            body += '3. Close this issue once done.\n';
+
+            // Check if an issue already exists
+            const issues = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: ['linkedin-token']
+            });
+
+            if (issues.data.length === 0) {
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: 'LinkedIn token expiring soon',
+                body: body,
+                labels: ['linkedin-token']
+              });
+            }
