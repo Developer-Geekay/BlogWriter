@@ -1,0 +1,18 @@
+# LinkedIn personal-profile posting.
+#
+# Credentials are NOT here — they come from the environment. Run
+# `npm run cli linkedin:auth` once to mint them.
+
+# LinkedIn versions its API by month (YYYYMM) and supports each for ~1 year.
+# A 426 "Upgrade Required" response means this is too old — bump it.
+apiVersion: "202606"
+
+# PUBLIC or CONNECTIONS. Worth setting to CONNECTIONS for your first live post
+# so a formatting mistake isn't broadcast to everyone.
+visibility: PUBLIC
+
+tokenEnv: LINKEDIN_ACCESS_TOKEN
+personUrnEnv: LINKEDIN_PERSON_URN
+
+# Days before token expiry that the token-health workflow opens an issue.
+expiryWarningDays: 7

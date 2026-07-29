@@ -108,6 +108,8 @@ export interface Post {
 }
 
 /** Public URL a post will live at once published. */
-export function postUrl(siteBaseUrl: string, slug: string): string {
-  return `${siteBaseUrl.replace(/\/+$/, '')}/blog/${slug}`;
+export function postUrl(siteBaseUrl: string, slug: string, blogPath = '/blog'): string {
+  const base = siteBaseUrl.replace(/\/+$/, '');
+  const path = `/${blogPath.replace(/^\/+|\/+$/g, '')}`;
+  return `${base}${path}/${slug}`;
 }

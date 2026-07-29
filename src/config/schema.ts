@@ -49,6 +49,20 @@ export const WebsiteConfigSchema = z.object({
 });
 export type WebsiteConfig = z.infer<typeof WebsiteConfigSchema>;
 
+export const LinkedInConfigSchema = z.object({
+  /**
+   * LinkedIn versions its API by month and supports each for about a year.
+   * A `426 Upgrade Required` response means this value is too old — bump it.
+   */
+  apiVersion: z.string().default('202606'),
+  visibility: z.enum(['PUBLIC', 'CONNECTIONS']).default('PUBLIC'),
+  tokenEnv: z.string().default('LINKEDIN_ACCESS_TOKEN'),
+  personUrnEnv: z.string().default('LINKEDIN_PERSON_URN'),
+  /** Warn this many days before the access token expires. */
+  expiryWarningDays: z.number().int().positive().default(7),
+});
+export type LinkedInConfig = z.infer<typeof LinkedInConfigSchema>;
+
 export const ModelConfigSchema = z.object({
   id: z.string().default('claude-opus-5'),
   /**
@@ -82,6 +96,7 @@ export const AppConfigSchema = z.object({
   profile: ProfileSchema,
   topics: TopicsSchema,
   website: WebsiteConfigSchema,
+  linkedin: LinkedInConfigSchema,
   model: ModelConfigSchema,
   contentDir: z.string().default('content/posts'),
 });
