@@ -7,6 +7,7 @@ import { PostRepository } from './store/repository.js';
 import { postUrl } from './store/post.js';
 import { draftPost } from './pipeline/draft.js';
 import { publishPost } from './pipeline/publish.js';
+import { serveHttp, serveStdio } from './mcp/transport.js';
 import { runAuthFlow } from './publishers/linkedin-auth.js';
 import { LinkedInPublisher } from './publishers/linkedin.js';
 import { WebsitePublisher } from './publishers/website.js';
@@ -190,6 +191,70 @@ program
       process.exit(1);
     }
   });
+
+program
+  .command('mcp')
+  .description('Run the MCP server so other AI clients can draft and publish posts')
+  .option('--http', 'serve over Streamable HTTP instead of stdio', false)
+  .option('-p, --port <port>', 'HTTP port', '8848')
+  .option(
+    '-H, --host <host>',
+    'HTTP bind address; a non-loopback address requires MCP_AUTH_TOKEN',
+    '127.0.0.1',
+  )
+  .option('--allow-publish', 'expose publish_post (posts publicly, including LinkedIn)', false)
+  .option('--allow-drafting', 'expose draft_post (spends Anthropic API credit)', false)
+  .action(
+    async (opts: {
+      http: boolean;
+      port: string;
+      host: string;
+      allowPublish: boolean;
+      allowDrafting: boolean;
+    }) => {
+      const config = await loadConfig();
+      const serverOptions = {
+        config,
+        allowPublish: opts.allowPublish,
+        allowDrafting: opts.allowDrafting,
+      };
+
+      if (!opts.http) {
+        // stdout is the protocol channel from here on — do not print to it.
+        await serveStdio(serverOptions);
+        return;
+      }
+
+      // Progress goes to stderr so it never competes with a piped stdout.
+      const log = new Logger(false, process.stderr);
+      const port = Number.parseInt(opts.port, 10);
+      if (!Number.isInteger(port) || port < 1 || port > 65535) {
+        log.error(`Invalid port "${opts.port}".`);
+        process.exit(1);
+      }
+
+      const authToken = process.env['MCP_AUTH_TOKEN'];
+      const close = await serveHttp({
+        ...serverOptions,
+        port,
+        host: opts.host,
+        ...(authToken ? { authToken } : {}),
+        allowedHosts: [`${opts.host}:${port}`, opts.host],
+        onListening: (url) => {
+          log.success(`MCP server listening on ${url}`);
+          log.info(`  auth     ${authToken ? 'bearer token required' : 'none (loopback only)'}`);
+          log.info(`  publish  ${opts.allowPublish ? 'enabled' : 'disabled'}`);
+          log.info(`  drafting ${opts.allowDrafting ? 'enabled' : 'disabled'}`);
+        },
+      });
+
+      for (const signal of ['SIGINT', 'SIGTERM'] as const) {
+        process.once(signal, () => {
+          void close().then(() => process.exit(0));
+        });
+      }
+    },
+  );
 
 program
   .command('validate')

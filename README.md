@@ -74,6 +74,76 @@ LINKEDIN_ACCESS_TOKEN=...
 LINKEDIN_PERSON_URN=urn:li:person:...
 ```
 
+## MCP server — let another AI write and publish
+
+The pipeline is also an [MCP](https://modelcontextprotocol.io) server, so any MCP-capable
+assistant (Claude Desktop, Claude Code, an editor, or a hosted model reached over HTTP) can
+read the voice guide, write posts into the content store, and — if you allow it — publish.
+
+```bash
+npm run mcp                     # stdio, for a client that launches the process
+npm run mcp -- --http           # Streamable HTTP on 127.0.0.1:8848
+```
+
+### Tools
+
+| Tool | Effect |
+|---|---|
+| `get_voice_guide` | Voice, audience, banned phrases, length targets, topic backlog. Read first. |
+| `list_posts` | Every post and its status; optionally filtered. |
+| `get_post` | Full Markdown body and metadata for one post. |
+| `create_post` | **The main one.** Saves a post the calling model wrote, as a draft. |
+| `update_post` | Revise a stored draft. Published posts are immutable. |
+| `set_post_status` | Move through `idea → drafted → approved → failed`. |
+| `draft_post` | Run *this* repo's Claude pipeline instead. Opt-in: `--allow-drafting`. |
+| `publish_post` | Publish to the blog and LinkedIn. Opt-in: `--allow-publish`. |
+
+The intended split is that the connected model does the writing and calls `create_post` —
+you pay nothing to the Anthropic API for it, and the post lands in the git working tree as
+Markdown for you to review as a diff. `draft_post` is there for when you want this repo's
+research-and-fact-check pipeline to do the work instead.
+
+### What's off by default
+
+`publish_post` and `draft_post` are **not registered** unless you pass their flags. Publishing
+is public and a LinkedIn post can't be deleted through the API, so a connected model cannot
+reach the outside world until you opt in:
+
+```bash
+npm run mcp -- --allow-publish --allow-drafting
+```
+
+Even then, `publish_post` refuses any post that isn't `approved`, and refuses to post to
+LinkedIn twice for the same post. Approval stays a human step.
+
+### Connecting a local client
+
+```json
+{
+  "mcpServers": {
+    "blogwriter": {
+      "command": "npx",
+      "args": ["tsx", "src/cli.ts", "mcp"],
+      "cwd": "/absolute/path/to/BlogWriter"
+    }
+  }
+}
+```
+
+### Connecting a remote model over HTTP
+
+Set a bearer token and the server requires it on every request:
+
+```bash
+MCP_AUTH_TOKEN="$(openssl rand -hex 32)" npm run mcp -- --http --host 0.0.0.0
+```
+
+Point the client at `http://<host>:8848/mcp` with `Authorization: Bearer <token>`. The server
+**refuses to start on a non-loopback address without a token** — an open MCP endpoint gives
+strangers write access to your content store. Requests run stateless (one server instance per
+request), and `Host` headers are checked as DNS-rebinding protection. Put it behind TLS before
+exposing it to the internet; the token is sent as a plain header.
+
 ### Automated workflows (GitHub Actions)
 
 Three workflows run automatically:

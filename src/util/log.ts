@@ -13,7 +13,15 @@ const green = (t: string) => paint('32', t);
 export class Logger {
   private startedAt = Date.now();
 
-  constructor(private readonly quiet = false) {}
+  /**
+   * `out` is where progress goes. It must be redirected to stderr when the
+   * process speaks a protocol on stdout — the MCP stdio transport frames
+   * JSON-RPC there, and a stray progress line desynchronises the stream.
+   */
+  constructor(
+    private readonly quiet = false,
+    private readonly out: NodeJS.WritableStream = process.stdout,
+  ) {}
 
   private elapsed(): string {
     return dim(`${((Date.now() - this.startedAt) / 1000).toFixed(1)}s`.padStart(6));
@@ -21,23 +29,23 @@ export class Logger {
 
   step(name: string, detail?: string): void {
     if (this.quiet) return;
-    process.stdout.write(
+    this.out.write(
       `${this.elapsed()}  ${cyan(name.padEnd(9))} ${detail ? dim(detail) : ''}\n`,
     );
   }
 
   detail(message: string): void {
     if (this.quiet) return;
-    process.stdout.write(`${' '.repeat(6)}  ${' '.repeat(9)} ${dim(`↳ ${message}`)}\n`);
+    this.out.write(`${' '.repeat(6)}  ${' '.repeat(9)} ${dim(`↳ ${message}`)}\n`);
   }
 
   info(message: string): void {
     if (this.quiet) return;
-    process.stdout.write(`${message}\n`);
+    this.out.write(`${message}\n`);
   }
 
   success(message: string): void {
-    process.stdout.write(`${green('✓')} ${message}\n`);
+    this.out.write(`${green('✓')} ${message}\n`);
   }
 
   warn(message: string): void {
@@ -50,6 +58,6 @@ export class Logger {
 
   heading(message: string): void {
     if (this.quiet) return;
-    process.stdout.write(`\n${bold(message)}\n`);
+    this.out.write(`\n${bold(message)}\n`);
   }
 }
