@@ -1,26 +1,22 @@
 import Link from 'next/link';
 
 /**
- * Brand mark plus wordmark.
+ * Monogram plus wordmark.
  *
- * The text is whatever `siteTitle` is set to in Settings, so renaming the blog
- * never means editing this file.
+ * Both come from `siteTitle` in Settings — the monogram is just its first
+ * letter — so renaming the blog never means editing this file or redrawing an
+ * icon. A monogram suits a personal byline better than a generic writing glyph.
  */
 export function BrandLogo({ title }: { title: string }) {
+  const initial = title.trim().charAt(0).toUpperCase() || 'B';
+
   return (
     <Link href="/" className="group flex items-center gap-2.5" aria-label={`${title} — home`}>
-      <span className="flex h-8 w-8 flex-none items-center justify-center rounded-lg bg-[var(--color-ink)] text-[var(--color-surface)] transition-transform group-hover:-rotate-6">
-        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" aria-hidden>
-          {/* A nib: writing, without leaning on a generic pencil glyph. */}
-          <path
-            d="M5 19 19 5M13 5h6v6"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-          <circle cx="7" cy="17" r="2.5" fill="currentColor" />
-        </svg>
+      <span
+        aria-hidden
+        className="flex h-8 w-8 flex-none items-center justify-center rounded-full bg-[var(--color-ink)] text-sm font-bold text-[var(--color-surface)] transition-transform group-hover:scale-105"
+      >
+        {initial}
       </span>
       <span className="text-lg font-bold tracking-tight">{title}</span>
     </Link>

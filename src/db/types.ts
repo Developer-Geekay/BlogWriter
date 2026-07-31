@@ -74,10 +74,8 @@ export type User = z.infer<typeof UserSchema>;
  * it must not require a redeploy.
  */
 export const SettingsSchema = z.object({
-  siteTitle: z.string().default('Hot Path'),
-  siteDescription: z
-    .string()
-    .default('Notes from the parts of the system that actually matter.'),
+  siteTitle: z.string().default('Gokulakannan'),
+  siteDescription: z.string().default('Engineering notes on AI systems, retrieval, and shipping software.'),
   /**
    * Master switch for the MCP endpoint. When false, `/api/mcp` refuses every
    * request — this is the toggle that disconnects external AI portals without

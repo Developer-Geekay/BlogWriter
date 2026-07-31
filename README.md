@@ -1,4 +1,4 @@
-# Hot Path
+# Blog portal
 
 A full-stack blogging portal — a Medium-style public site plus an admin portal for
 writing and managing posts, backed by MongoDB. It also exposes an **MCP endpoint** so an
@@ -30,7 +30,7 @@ cp .env.example .env
 Fill in two values in `.env`:
 
 ```bash
-MONGODB_URI=mongodb://127.0.0.1:27017/hotpath
+MONGODB_URI=mongodb://127.0.0.1:27017/blog
 SESSION_SECRET=$(openssl rand -hex 32)
 ```
 
@@ -63,9 +63,10 @@ npm run import-markdown          # reads content/posts/, skips anything already 
 - **Writing is single-author**, so the "Write" button only appears when you are
   signed in, and there is no sign-in link anywhere on the public site. Readers never
   see a control they cannot use. Reach the portal by going to `/admin` directly.
-- **Brand** — "Hot Path" and its tagline are only *defaults*. Both are editable at
-  **Settings → Site** and stored in the database, so renaming the blog needs no code
-  change. The logo mark itself is `components/BrandLogo.tsx`.
+- **Brand** — the site title and tagline are only *defaults* (currently the author's
+  name). Both are editable at **Settings → Site** and stored in the database, so
+  renaming needs no code change — the monogram is derived from the title's first
+  letter, so it follows along automatically.
 
 ## Managing posts
 
@@ -140,7 +141,7 @@ npm run mcp
 ```json
 {
   "mcpServers": {
-    "blog": { "command": "npx", "args": ["tsx", "src/cli.ts", "mcp"], "cwd": "/path/to/hot-path" }
+    "blog": { "command": "npx", "args": ["tsx", "src/cli.ts", "mcp"], "cwd": "/path/to/blog" }
   }
 }
 ```

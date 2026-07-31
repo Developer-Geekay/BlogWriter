@@ -14,8 +14,8 @@ import { Logger } from './util/log.js';
 const program = new Command();
 
 program
-  .name('hotpath')
-  .description('Operational commands for the Hot Path portal')
+  .name('blog')
+  .description('Operational commands for the blog portal')
   .version('1.0.0');
 
 /**
@@ -95,7 +95,7 @@ program
       posts.count({ status: 'archived' }),
     ]);
 
-    log.heading('Hot Path');
+    log.heading('Gokulakannan');
     log.info(`  admins      ${users}`);
     log.info(`  published   ${published}`);
     log.info(`  drafts      ${drafts}`);

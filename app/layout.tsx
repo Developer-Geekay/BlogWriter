@@ -18,10 +18,7 @@ async function siteMeta(): Promise<{ title: string; description: string }> {
     const settings = await (await SettingsStore.open()).get();
     return { title: settings.siteTitle, description: settings.siteDescription };
   } catch {
-    return {
-      title: 'Hot Path',
-      description: 'Notes from the parts of the system that actually matter.',
-    };
+    return { title: 'Gokulakannan', description: 'Engineering notes on AI systems, retrieval, and shipping software.' };
   }
 }
 
