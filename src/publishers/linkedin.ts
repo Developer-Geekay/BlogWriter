@@ -150,7 +150,8 @@ export class LinkedInPublisher {
         Authorization: `Bearer ${this.credentials.accessToken}`,
         'Content-Type': contentType,
       },
-      body: bytes,
+      // Wrapped in a Blob: a bare Uint8Array is not a valid fetch BodyInit.
+      body: new Blob([bytes as BlobPart]),
     });
 
     if (!upload.ok) {

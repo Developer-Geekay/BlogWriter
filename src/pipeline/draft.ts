@@ -10,8 +10,7 @@ import {
   systemPrompt,
   verifyPrompt,
 } from '../llm/prompts.js';
-import { newFrontmatter, type PostRepository } from '../store/repository.js';
-import type { Post, Source } from '../store/post.js';
+import type { Source } from '../store/post.js';
 import type { Logger } from '../util/log.js';
 
 export interface DraftOptions {
@@ -21,9 +20,17 @@ export interface DraftOptions {
   skipResearch?: boolean;
 }
 
-export interface DraftOutcome {
-  post: Post;
-  path: string;
+/**
+ * The finished article, with no opinion about where it gets stored. The caller
+ * persists it — the portal writes it to MongoDB.
+ */
+export interface ComposedDraft {
+  title: string;
+  excerpt: string;
+  tags: string[];
+  body: string;
+  sources: Source[];
+  unsupportedClaims: string[];
   usage: Usage;
 }
 
@@ -35,11 +42,11 @@ export interface DraftOutcome {
  * than handing the finished text to a caller that has never seen the draft
  * being written.
  */
-export async function draftPost(
+export async function composeDraft(
   options: DraftOptions,
-  deps: { config: AppConfig; llm: LlmClient; repo: PostRepository; log: Logger },
-): Promise<DraftOutcome> {
-  const { config, llm, repo, log } = deps;
+  deps: { config: AppConfig; llm: LlmClient; log: Logger },
+): Promise<ComposedDraft> {
+  const { config, llm, log } = deps;
   const system = systemPrompt(config.profile);
   let usage = emptyUsage();
 
@@ -106,25 +113,13 @@ export async function draftPost(
   });
   usage = addUsage(usage, meta.usage);
 
-  const slug = await repo.allocateSlug(meta.value.title, options.slug);
-  const frontmatter = newFrontmatter({
-    slug,
+  return {
     title: meta.value.title,
-    topic: options.topic,
-    status: 'drafted',
-  });
-
-  const post: Post = {
-    frontmatter: {
-      ...frontmatter,
-      excerpt: meta.value.excerpt,
-      tags: meta.value.tags.length ? meta.value.tags : config.profile.post.defaultTags,
-      sources,
-      unsupportedClaims,
-    },
+    excerpt: meta.value.excerpt,
+    tags: meta.value.tags.length ? meta.value.tags : config.profile.post.defaultTags,
     body,
+    sources,
+    unsupportedClaims,
+    usage,
   };
-
-  const path = await repo.write(post);
-  return { post, path, usage };
 }

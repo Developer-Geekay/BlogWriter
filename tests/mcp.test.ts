@@ -1,46 +1,38 @@
-import { mkdtemp, rm } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
-import path from 'node:path';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import { buildMcpServer } from '../src/mcp/server.js';
-import { AppConfigSchema, type AppConfig } from '../src/config/schema.js';
-import { PostRepository } from '../src/store/repository.js';
+import { ProfileSchema, TopicsSchema } from '../src/config/schema.js';
+import { MemoryPostStore } from './helpers/memory-store.js';
 
-function testConfig(contentDir: string): AppConfig {
-  return AppConfigSchema.parse({
-    profile: {
-      author: { name: 'Test Author' },
-      audience: 'Engineers who ship',
-      voice: {
-        description: 'Direct and concrete.',
-        do: ['Use specifics'],
-        dont: ['Pad with filler'],
-      },
-      bannedPhrases: ['in today\'s fast-paced world'],
-      post: { minWords: 10, maxWords: 100, defaultTags: ['engineering'] },
-      linkedin: {},
-    },
-    topics: { themes: ['retrieval'], backlog: ['context windows'] },
-    website: {},
-    linkedin: {},
-    model: {},
-    contentDir,
+const profile = ProfileSchema.parse({
+  author: { name: 'Test Author' },
+  audience: 'Engineers who ship',
+  voice: { description: 'Direct and concrete.', do: ['Use specifics'], dont: ['Pad'] },
+  bannedPhrases: ["in today's fast-paced world"],
+  post: { minWords: 10, maxWords: 100, defaultTags: ['engineering'] },
+  linkedin: {},
+});
+
+const topics = TopicsSchema.parse({ themes: ['retrieval'], backlog: ['context windows'] });
+
+const BODY = 'A body with comfortably more than ten words in it, to clear the minimum.';
+
+async function connect(options: { allowPublish?: boolean; withProfile?: boolean } = {}) {
+  const posts = new MemoryPostStore();
+  const server = buildMcpServer({
+    posts,
+    ...(options.withProfile === false ? {} : { profile, topics }),
+    allowPublish: options.allowPublish ?? false,
+    siteUrl: 'https://example.com',
   });
-}
-
-/** Connect an in-memory client to the server so calls go over real JSON-RPC. */
-async function connect(config: AppConfig, options: { allowPublish?: boolean } = {}) {
-  const server = buildMcpServer({ config, ...options });
   const client = new Client({ name: 'test-client', version: '0.0.0' });
   const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
   await Promise.all([server.connect(serverTransport), client.connect(clientTransport)]);
-  return { client, server };
+  return { client, posts };
 }
 
-/** The text of a tool result, for assertions. */
 function resultText(result: CallToolResult): string {
   return result.content
     .filter((block): block is { type: 'text'; text: string } => block.type === 'text')
@@ -48,291 +40,267 @@ function resultText(result: CallToolResult): string {
     .join('\n');
 }
 
-let dir: string;
-let config: AppConfig;
+async function call(
+  client: Client,
+  name: string,
+  args?: Record<string, unknown>,
+): Promise<CallToolResult> {
+  return (await client.callTool({ name, ...(args ? { arguments: args } : {}) })) as CallToolResult;
+}
 
-beforeEach(async () => {
-  dir = await mkdtemp(path.join(tmpdir(), 'blogwriter-mcp-'));
-  config = testConfig(path.join(dir, 'posts'));
-});
-
-afterEach(async () => {
-  await rm(dir, { recursive: true, force: true });
-});
+/** Create a post and return its id. */
+async function seed(client: Client, title: string, extra: Record<string, unknown> = {}) {
+  const result = await call(client, 'create_post', { title, body: BODY, ...extra });
+  const id = /id (\S+?)\)/.exec(resultText(result))?.[1];
+  expect(id, resultText(result)).toBeDefined();
+  return id!;
+}
 
 describe('tool surface', () => {
-  it('exposes the read and write tools but not publishing by default', async () => {
-    const { client } = await connect(config);
+  it('withholds publishing and deletion unless the portal allows it', async () => {
+    const { client } = await connect();
     const names = (await client.listTools()).tools.map((t) => t.name).sort();
 
-    expect(names).toEqual([
-      'create_post',
-      'get_post',
-      'get_voice_guide',
-      'list_posts',
-      'set_post_status',
-      'update_post',
-    ]);
+    expect(names).toEqual(['create_post', 'get_post', 'get_voice_guide', 'list_posts', 'update_post']);
   });
 
-  it('registers publish_post only when explicitly allowed', async () => {
-    const { client } = await connect(config, { allowPublish: true });
+  it('adds set_post_status and delete_post when publishing is allowed', async () => {
+    const { client } = await connect({ allowPublish: true });
     const names = (await client.listTools()).tools.map((t) => t.name);
 
-    expect(names).toContain('publish_post');
+    expect(names).toContain('set_post_status');
+    expect(names).toContain('delete_post');
   });
 
-  it('marks read-only tools as such so clients can skip confirmation', async () => {
-    const { client } = await connect(config);
+  it('omits the voice guide when no profile is configured', async () => {
+    const { client } = await connect({ withProfile: false });
+    const names = (await client.listTools()).tools.map((t) => t.name);
+
+    expect(names).not.toContain('get_voice_guide');
+  });
+
+  it('marks read-only tools so clients can skip a confirmation prompt', async () => {
+    const { client } = await connect({ allowPublish: true });
     const tools = (await client.listTools()).tools;
 
     expect(tools.find((t) => t.name === 'get_post')?.annotations?.readOnlyHint).toBe(true);
-    expect(tools.find((t) => t.name === 'create_post')?.annotations?.readOnlyHint).toBe(false);
+    expect(tools.find((t) => t.name === 'set_post_status')?.annotations?.destructiveHint).toBe(true);
   });
 });
 
 describe('get_voice_guide', () => {
-  // A zero-argument tool must work when the client omits `arguments`, which the
-  // protocol permits. Declaring an (empty) input schema makes the SDK reject it.
-  it('accepts a call with no arguments field at all', async () => {
-    const { client } = await connect(config);
-    const result = (await client.callTool({ name: 'get_voice_guide' })) as CallToolResult;
+  // A zero-argument tool must work when the client omits `arguments` entirely,
+  // which the protocol permits; declaring an input schema would reject it.
+  it('accepts a call with no arguments field', async () => {
+    const { client } = await connect();
+    const result = await call(client, 'get_voice_guide');
 
     expect(result.isError).toBeFalsy();
     expect(resultText(result)).not.toContain('validation error');
   });
 
   it('returns the voice, banned phrases, and topic backlog', async () => {
-    const { client } = await connect(config);
-    const guide = JSON.parse(
-      resultText((await client.callTool({ name: 'get_voice_guide' })) as CallToolResult),
-    );
+    const { client } = await connect();
+    const guide = JSON.parse(resultText(await call(client, 'get_voice_guide')));
 
     expect(guide.voice.description).toBe('Direct and concrete.');
-    expect(guide.bannedPhrases).toContain('in today\'s fast-paced world');
+    expect(guide.bannedPhrases).toContain("in today's fast-paced world");
     expect(guide.topics.backlog).toContain('context windows');
-    expect(guide.audience).toBe('Engineers who ship');
+    expect(guide.lengthTarget).toEqual({ minWords: 10, maxWords: 100 });
   });
 });
 
 describe('create_post', () => {
-  it('writes a drafted post the repository can read back', async () => {
-    const { client } = await connect(config);
-    const body = 'A body with more than ten words in it, comfortably inside the range.';
+  it('always creates a draft, never a published post', async () => {
+    const { client, posts } = await connect({ allowPublish: true });
+    await seed(client, 'Retrieval Beats Context Size');
 
-    const result = (await client.callTool({
-      name: 'create_post',
-      arguments: { title: 'Retrieval Beats Context Size', body, excerpt: 'Why.' },
-    })) as CallToolResult;
-
-    expect(result.isError).toBeFalsy();
-    expect(resultText(result)).toContain('retrieval-beats-context-size');
-
-    const post = await new PostRepository(config.contentDir).read('retrieval-beats-context-size');
-    expect(post.frontmatter.status).toBe('drafted');
-    expect(post.frontmatter.title).toBe('Retrieval Beats Context Size');
-    expect(post.body).toBe(body);
+    const [stored] = await posts.list();
+    expect(stored!.status).toBe('draft');
+    expect(stored!.publishedAt).toBeNull();
+    expect(stored!.slug).toBe('retrieval-beats-context-size');
   });
 
-  it('applies default tags when none are given', async () => {
-    const { client } = await connect(config);
-    await client.callTool({
-      name: 'create_post',
-      arguments: { title: 'Post One', body: 'ten words here to clear the minimum bar for length ok' },
+  it('tells the caller the post is not public yet', async () => {
+    const { client } = await connect();
+    const result = await call(client, 'create_post', { title: 'A Post', body: BODY });
+
+    expect(resultText(result)).toContain('not public yet');
+  });
+
+  it('warns about banned phrases rather than silently accepting them', async () => {
+    const { client } = await connect();
+    const result = await call(client, 'create_post', {
+      title: 'Bad Voice',
+      body: "In today's fast-paced world, engineers need at least ten words to pass this check.",
     });
-
-    const post = await new PostRepository(config.contentDir).read('post-one');
-    expect(post.frontmatter.tags).toEqual(['engineering']);
-  });
-
-  it('warns about banned phrases instead of silently accepting them', async () => {
-    const { client } = await connect(config);
-    const result = (await client.callTool({
-      name: 'create_post',
-      arguments: {
-        title: 'Bad Voice',
-        body: "In today's fast-paced world, engineers need ten or more words to pass the check.",
-      },
-    })) as CallToolResult;
 
     expect(resultText(result)).toContain('banned phrases');
   });
 
   it('warns when the body misses the length target', async () => {
-    const { client } = await connect(config);
-    const result = (await client.callTool({
-      name: 'create_post',
-      arguments: { title: 'Too Short', body: 'Three words only.' },
-    })) as CallToolResult;
+    const { client } = await connect();
+    const result = await call(client, 'create_post', { title: 'Too Short', body: 'Three words only.' });
 
     expect(resultText(result)).toContain('10–100');
   });
 
-  it('gives a second post a distinct slug rather than overwriting the first', async () => {
-    const { client } = await connect(config);
-    const args = { body: 'a body with at least ten words in it to pass the length check' };
-    await client.callTool({ name: 'create_post', arguments: { title: 'Same Title', ...args } });
-    await client.callTool({ name: 'create_post', arguments: { title: 'Same Title', ...args } });
+  it('gives a colliding title a distinct slug instead of overwriting', async () => {
+    const { client, posts } = await connect();
+    await seed(client, 'Same Title');
+    await seed(client, 'Same Title');
 
-    const slugs = await new PostRepository(config.contentDir).listSlugs();
-    expect(slugs).toEqual(['same-title', 'same-title-2']);
+    expect((await posts.list()).map((p) => p.slug).sort()).toEqual(['same-title', 'same-title-2']);
+  });
+
+  it('rejects a slug the blog API would not accept', async () => {
+    const { client } = await connect();
+    const result = await call(client, 'create_post', {
+      title: 'Bad Slug',
+      body: BODY,
+      slug: 'Not A Valid Slug!',
+    });
+
+    expect(result.isError).toBe(true);
   });
 });
 
 describe('update_post', () => {
-  const body = 'An original body long enough to clear the ten word minimum for this test.';
-
-  beforeEach(async () => {
-    const { client } = await connect(config);
-    await client.callTool({
-      name: 'create_post',
-      arguments: { title: 'Editable', body },
-    });
-  });
-
   it('changes only the fields that were passed', async () => {
-    const { client } = await connect(config);
-    await client.callTool({
-      name: 'update_post',
-      arguments: { slug: 'editable', title: 'Edited Title' },
-    });
+    const { client, posts } = await connect();
+    const id = await seed(client, 'Editable');
 
-    const post = await new PostRepository(config.contentDir).read('editable');
-    expect(post.frontmatter.title).toBe('Edited Title');
-    expect(post.body).toBe(body);
+    await call(client, 'update_post', { id, title: 'Edited Title' });
+
+    const post = await posts.findById(id);
+    expect(post!.title).toBe('Edited Title');
+    expect(post!.body).toBe(BODY);
   });
 
-  it('reports an error for an unknown slug', async () => {
-    const { client } = await connect(config);
-    const result = (await client.callTool({
-      name: 'update_post',
-      arguments: { slug: 'does-not-exist', title: 'x' },
-    })) as CallToolResult;
+  it('recomputes reading time when the body changes', async () => {
+    const { client, posts } = await connect();
+    const id = await seed(client, 'Growing');
 
-    expect(result.isError).toBe(true);
-    expect(resultText(result)).toContain('does-not-exist');
+    await call(client, 'update_post', { id, body: 'word '.repeat(1000) });
+
+    expect((await posts.findById(id))!.readingTime).toBe(5);
   });
 
-  it('refuses to edit a published post', async () => {
-    const repo = new PostRepository(config.contentDir);
-    await repo.update('editable', (post) => {
-      post.frontmatter.status = 'approved';
-      return post;
-    });
-    await repo.update('editable', (post) => {
-      post.frontmatter.status = 'published';
-      return post;
-    });
-
-    const { client } = await connect(config);
-    const result = (await client.callTool({
-      name: 'update_post',
-      arguments: { slug: 'editable', body: 'rewritten' },
-    })) as CallToolResult;
+  it('reports an error for an unknown id', async () => {
+    const { client } = await connect();
+    const result = await call(client, 'update_post', { id: 'nope', title: 'x' });
 
     expect(result.isError).toBe(true);
-    expect(resultText(result)).toContain('already published');
+    expect(resultText(result)).toContain('nope');
+  });
+
+  it('rejects a call that changes nothing', async () => {
+    const { client } = await connect();
+    const id = await seed(client, 'Unchanged');
+    const result = await call(client, 'update_post', { id });
+
+    expect(result.isError).toBe(true);
+    expect(resultText(result)).toContain('at least one field');
   });
 });
 
-describe('set_post_status', () => {
-  beforeEach(async () => {
-    const { client } = await connect(config);
-    await client.callTool({
-      name: 'create_post',
-      arguments: { title: 'Gated', body: 'a body with at least ten words in it for the checker' },
-    });
+describe('publishing', () => {
+  it('is not reachable at all when the portal disallows it', async () => {
+    const { client } = await connect({ allowPublish: false });
+    const id = await seed(client, 'Stays Private');
+
+    // The tool is unregistered, so dispatch fails outright rather than the call
+    // quietly succeeding — this is the toggle doing its job.
+    const result = await call(client, 'set_post_status', { id, status: 'published' });
+
+    expect(result.isError).toBe(true);
+    expect(resultText(result)).toContain('not found');
   });
 
-  it('moves a drafted post to approved', async () => {
-    const { client } = await connect(config);
-    const result = (await client.callTool({
-      name: 'set_post_status',
-      arguments: { slug: 'gated', status: 'approved' },
-    })) as CallToolResult;
+  it('publishes and reports the public URL when allowed', async () => {
+    const { client, posts } = await connect({ allowPublish: true });
+    const id = await seed(client, 'Goes Live');
+
+    const result = await call(client, 'set_post_status', { id, status: 'published' });
 
     expect(result.isError).toBeFalsy();
-    const post = await new PostRepository(config.contentDir).read('gated');
-    expect(post.frontmatter.status).toBe('approved');
+    expect(resultText(result)).toContain('https://example.com/blog/goes-live');
+    const post = await posts.findById(id);
+    expect(post!.status).toBe('published');
+    expect(post!.publishedAt).not.toBeNull();
   });
 
-  it('rejects an illegal transition with the reason', async () => {
-    const { client } = await connect(config);
-    await client.callTool({ name: 'set_post_status', arguments: { slug: 'gated', status: 'approved' } });
-    const result = (await client.callTool({
-      name: 'set_post_status',
-      arguments: { slug: 'gated', status: 'idea' },
-    })) as CallToolResult;
+  it('keeps the original publish date when re-publishing an edit', async () => {
+    const { client, posts } = await connect({ allowPublish: true });
+    const id = await seed(client, 'Republished');
 
-    expect(result.isError).toBe(true);
-    expect(resultText(result)).toContain('Cannot move a post from "approved" to "idea"');
+    await call(client, 'set_post_status', { id, status: 'published' });
+    const first = (await posts.findById(id))!.publishedAt;
+    await call(client, 'set_post_status', { id, status: 'draft' });
+    await call(client, 'set_post_status', { id, status: 'published' });
+
+    expect((await posts.findById(id))!.publishedAt).toBe(first);
+  });
+
+  it('deletes a post when allowed', async () => {
+    const { client, posts } = await connect({ allowPublish: true });
+    const id = await seed(client, 'Doomed');
+
+    await call(client, 'delete_post', { id });
+
+    expect(await posts.findById(id)).toBeNull();
   });
 });
 
-describe('list_posts', () => {
-  it('filters by status', async () => {
-    const { client } = await connect(config);
-    const body = 'a body with at least ten words in it to satisfy the length check';
-    await client.callTool({ name: 'create_post', arguments: { title: 'First', body } });
-    await client.callTool({ name: 'create_post', arguments: { title: 'Second', body } });
-    await client.callTool({ name: 'set_post_status', arguments: { slug: 'first', status: 'approved' } });
+describe('list_posts and get_post', () => {
+  let client: Client;
 
-    const all = JSON.parse(
-      resultText(
-        (await client.callTool({ name: 'list_posts', arguments: {} })) as CallToolResult,
-      ),
-    );
+  beforeEach(async () => {
+    ({ client } = await connect({ allowPublish: true }));
+    const first = await seed(client, 'First Post', { tags: ['alpha'] });
+    await seed(client, 'Second Post', { tags: ['beta'] });
+    await call(client, 'set_post_status', { id: first, status: 'published' });
+  });
+
+  it('filters by status', async () => {
+    const all = JSON.parse(resultText(await call(client, 'list_posts', {})));
     expect(all.count).toBe(2);
 
-    const approved = JSON.parse(
-      resultText(
-        (await client.callTool({
-          name: 'list_posts',
-          arguments: { status: 'approved' },
-        })) as CallToolResult,
-      ),
+    const published = JSON.parse(
+      resultText(await call(client, 'list_posts', { status: 'published' })),
     );
-    expect(approved.count).toBe(1);
-    expect(approved.posts[0].slug).toBe('first');
-  });
-});
-
-describe('publish_post guards', () => {
-  it('refuses to publish a post that has not been approved', async () => {
-    const { client } = await connect(config, { allowPublish: true });
-    await client.callTool({
-      name: 'create_post',
-      arguments: { title: 'Unapproved', body: 'a body with at least ten words in it here now' },
-    });
-
-    const result = (await client.callTool({
-      name: 'publish_post',
-      arguments: { slug: 'unapproved' },
-    })) as CallToolResult;
-
-    expect(result.isError).toBe(true);
-    expect(resultText(result)).toContain('not approved');
+    expect(published.count).toBe(1);
+    expect(published.posts[0].slug).toBe('first-post');
   });
 
-  it('refuses to re-post to LinkedIn when a post URN is already recorded', async () => {
-    const { client } = await connect(config, { allowPublish: true });
-    await client.callTool({
-      name: 'create_post',
-      arguments: { title: 'Already Posted', body: 'a body with at least ten words in it right here' },
-    });
-    const repo = new PostRepository(config.contentDir);
-    await repo.update('already-posted', (post) => {
-      post.frontmatter.status = 'approved';
-      post.frontmatter.linkedin.postUrn = 'urn:li:share:12345';
-      return post;
-    });
+  it('exposes the public URL only for published posts', async () => {
+    const all = JSON.parse(resultText(await call(client, 'list_posts', {})));
+    const [published, draft] = [
+      all.posts.find((p: { status: string }) => p.status === 'published'),
+      all.posts.find((p: { status: string }) => p.status === 'draft'),
+    ];
 
-    const result = (await client.callTool({
-      name: 'publish_post',
-      arguments: { slug: 'already-posted' },
-    })) as CallToolResult;
+    expect(published.url).toBe('https://example.com/blog/first-post');
+    expect(draft.url).toBeUndefined();
+  });
+
+  it('searches titles and tags', async () => {
+    const found = JSON.parse(resultText(await call(client, 'list_posts', { search: 'beta' })));
+
+    expect(found.count).toBe(1);
+    expect(found.posts[0].title).toBe('Second Post');
+  });
+
+  it('returns the full body by slug', async () => {
+    const post = JSON.parse(resultText(await call(client, 'get_post', { slug: 'first-post' })));
+
+    expect(post.body).toBe(BODY);
+  });
+
+  it('requires either a slug or an id', async () => {
+    const result = await call(client, 'get_post', {});
 
     expect(result.isError).toBe(true);
-    expect(resultText(result)).toContain('urn:li:share:12345');
+    expect(resultText(result)).toContain('slug or an id');
   });
 });
