@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 
-export const THEME_KEY = 'blogwriter-theme';
+export const THEME_KEY = 'hotpath-theme';
 
 /**
  * Applied before first paint by the inline script in the layout, and again here

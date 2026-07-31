@@ -1,4 +1,4 @@
-# BlogWriter
+# Hot Path
 
 A full-stack blogging portal — a Medium-style public site plus an admin portal for
 writing and managing posts, backed by MongoDB. It also exposes an **MCP endpoint** so an
@@ -30,7 +30,7 @@ cp .env.example .env
 Fill in two values in `.env`:
 
 ```bash
-MONGODB_URI=mongodb://127.0.0.1:27017/blogwriter
+MONGODB_URI=mongodb://127.0.0.1:27017/hotpath
 SESSION_SECRET=$(openssl rand -hex 32)
 ```
 
@@ -61,11 +61,11 @@ npm run import-markdown          # reads content/posts/, skips anything already 
   follows your system setting until you override it. An inline script applies the
   stored theme before first paint, so there is no flash on load.
 - **Writing is single-author**, so the "Write" button only appears when you are
-  signed in. Readers never see a control they cannot use — the footer has a quiet
-  "Sign in" link instead.
-- **Brand** — the logo mark is in `components/BrandLogo.tsx`; the wordmark next to
-  it is whatever `siteTitle` is set to in **Settings**, so renaming the blog needs
-  no code change.
+  signed in, and there is no sign-in link anywhere on the public site. Readers never
+  see a control they cannot use. Reach the portal by going to `/admin` directly.
+- **Brand** — "Hot Path" and its tagline are only *defaults*. Both are editable at
+  **Settings → Site** and stored in the database, so renaming the blog needs no code
+  change. The logo mark itself is `components/BrandLogo.tsx`.
 
 ## Managing posts
 
@@ -140,7 +140,7 @@ npm run mcp
 ```json
 {
   "mcpServers": {
-    "blog": { "command": "npx", "args": ["tsx", "src/cli.ts", "mcp"], "cwd": "/path/to/BlogWriter" }
+    "blog": { "command": "npx", "args": ["tsx", "src/cli.ts", "mcp"], "cwd": "/path/to/hot-path" }
   }
 }
 ```

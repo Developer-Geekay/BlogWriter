@@ -1,8 +1,8 @@
 {
-  "name": "blogwriter",
+  "name": "hotpath",
   "version": "0.1.0",
   "private": true,
-  "description": "AI-assisted blog and LinkedIn content pipeline for gokulakannan.dev",
+  "description": "A blogging portal with an MCP endpoint for AI-assisted writing",
   "type": "module",
   "engines": {
     "node": ">=20"

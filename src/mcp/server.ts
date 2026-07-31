@@ -6,7 +6,7 @@ import { POST_STATUSES, type Post } from '../db/types.js';
 import { InvalidSlugError } from '../store/slug.js';
 import type { Profile, Topics } from '../config/schema.js';
 
-export const MCP_SERVER_NAME = 'blogwriter';
+export const MCP_SERVER_NAME = 'hotpath';
 export const MCP_SERVER_VERSION = '1.0.0';
 
 export interface McpServerOptions {

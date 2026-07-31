@@ -18,7 +18,10 @@ async function siteMeta(): Promise<{ title: string; description: string }> {
     const settings = await (await SettingsStore.open()).get();
     return { title: settings.siteTitle, description: settings.siteDescription };
   } catch {
-    return { title: 'BlogWriter', description: 'Writing about software.' };
+    return {
+      title: 'Hot Path',
+      description: 'Notes from the parts of the system that actually matter.',
+    };
   }
 }
 
@@ -69,9 +72,13 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             <span>
               © {new Date().getFullYear()} {title}
             </span>
-            <Link href="/admin" className="hover:text-[var(--color-ink)]">
-              {session ? 'Portal' : 'Sign in'}
-            </Link>
+            {/* No sign-in link: the sole author reaches /admin directly, and
+                advertising the login to readers invites traffic at it. */}
+            {session ? (
+              <Link href="/admin" className="hover:text-[var(--color-ink)]">
+                Portal
+              </Link>
+            ) : null}
           </div>
         </footer>
       </body>
