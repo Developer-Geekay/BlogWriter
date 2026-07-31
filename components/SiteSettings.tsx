@@ -33,10 +33,10 @@ export function SiteSettings({ initial }: { initial: PublicSettings }) {
   }
 
   const field =
-    'mt-1 w-full rounded border border-[var(--color-rule)] px-3 py-2 dark:border-neutral-700 dark:bg-neutral-900';
+    'mt-1 w-full rounded border border-[var(--color-rule)] bg-[var(--color-raised)] px-3 py-2 outline-none focus:border-[var(--color-accent)]';
 
   return (
-    <section className="rounded border border-[var(--color-rule)] p-6 dark:border-neutral-800">
+    <section className="rounded border border-[var(--color-rule)] p-6">
       <h2 className="text-lg font-semibold">Site</h2>
 
       <label className="mt-4 block text-xs font-semibold uppercase tracking-wider text-[var(--color-muted)]">
@@ -64,7 +64,7 @@ export function SiteSettings({ initial }: { initial: PublicSettings }) {
         type="button"
         onClick={save}
         disabled={busy}
-        className="mt-4 rounded-full border border-[var(--color-rule)] px-4 py-2 text-sm font-medium disabled:opacity-50 dark:border-neutral-700"
+        className="mt-4 rounded-full border border-[var(--color-rule)] px-4 py-2 text-sm font-medium disabled:opacity-50"
       >
         {busy ? 'Saving…' : saved ? 'Saved' : 'Save'}
       </button>

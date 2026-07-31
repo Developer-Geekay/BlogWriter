@@ -12,7 +12,7 @@ export function formatDate(iso: string | null): string {
 
 export function PostCard({ post }: { post: Post }) {
   return (
-    <article className="border-b border-[var(--color-rule)] py-8 dark:border-neutral-800">
+    <article className="border-b border-[var(--color-rule)] py-8">
       <div className="flex items-start justify-between gap-8">
         <div className="min-w-0 flex-1">
           <Link href={`/blog/${post.slug}`} className="group">
@@ -32,7 +32,7 @@ export function PostCard({ post }: { post: Post }) {
               <Link
                 key={tag}
                 href={`/tag/${encodeURIComponent(tag)}`}
-                className="rounded-full bg-neutral-100 px-3 py-1 text-xs hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700"
+                className="rounded-full bg-[var(--color-raised)] px-3 py-1 text-xs hover:opacity-80"
               >
                 {tag}
               </Link>

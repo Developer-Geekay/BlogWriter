@@ -1,27 +1,45 @@
 @import 'tailwindcss';
 @plugin '@tailwindcss/typography';
 
+/*
+ * Dark mode is driven by a class on <html>, not by prefers-color-scheme, so the
+ * header toggle can override the system setting. An inline script in the layout
+ * applies the stored choice before first paint.
+ */
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
   --font-serif: 'Charter', 'Georgia', 'Cambria', serif;
   --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
-  --color-ink: #191919;
-  --color-muted: #6b6b6b;
-  --color-rule: #e6e6e6;
   --color-accent: #1a8917;
 }
 
 :root {
+  --color-ink: #191919;
+  --color-muted: #6b6b6b;
+  --color-rule: #e6e6e6;
+  --color-surface: #ffffff;
+  --color-raised: #f7f7f7;
   color-scheme: light;
 }
 
+.dark {
+  --color-ink: #ededed;
+  --color-muted: #a1a1a1;
+  --color-rule: #2a2a2a;
+  --color-surface: #0f0f0f;
+  --color-raised: #1a1a1a;
+  color-scheme: dark;
+}
+
 body {
-  background: #fff;
+  background: var(--color-surface);
   color: var(--color-ink);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
 }
 
-/* Long-form reading: serif body copy at a comfortable measure, like Medium. */
+/* Long-form reading: serif body copy at a comfortable measure. */
 .article-body {
   font-family: var(--font-serif);
   font-size: 1.25rem;
@@ -40,12 +58,10 @@ body {
   max-width: 100%;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    color-scheme: dark;
-  }
-  body {
-    background: #0f0f0f;
-    color: #ededed;
-  }
+/* Highlight the matched term in search results. */
+mark {
+  background: color-mix(in srgb, var(--color-accent) 22%, transparent);
+  color: inherit;
+  padding: 0 0.1em;
+  border-radius: 2px;
 }

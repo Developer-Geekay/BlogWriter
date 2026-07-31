@@ -84,7 +84,7 @@ export function PostEditor({ post }: Props) {
   }
 
   const field =
-    'w-full rounded border border-[var(--color-rule)] px-3 py-2 dark:border-neutral-700 dark:bg-neutral-900';
+    'w-full rounded border border-[var(--color-rule)] bg-[var(--color-raised)] px-3 py-2 outline-none focus:border-[var(--color-accent)]';
 
   return (
     <div className="grid gap-8 lg:grid-cols-[1fr_300px]">
@@ -94,7 +94,7 @@ export function PostEditor({ post }: Props) {
           placeholder="Title"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          className="w-full border-none bg-transparent text-4xl font-bold tracking-tight outline-none placeholder:text-neutral-300 dark:placeholder:text-neutral-700"
+          className="w-full border-none bg-transparent text-4xl font-bold tracking-tight outline-none placeholder:text-[var(--color-muted)]"
         />
 
         <textarea
@@ -112,7 +112,7 @@ export function PostEditor({ post }: Props) {
           value={body}
           onChange={(e) => setBody(e.target.value)}
           rows={26}
-          className="article-body mt-6 w-full resize-y rounded border border-[var(--color-rule)] bg-transparent p-4 outline-none dark:border-neutral-800"
+          className="article-body mt-6 w-full resize-y rounded border border-[var(--color-rule)] bg-transparent p-4 outline-none"
         />
 
         <p className="mt-2 text-sm text-[var(--color-muted)]">
@@ -127,7 +127,7 @@ export function PostEditor({ post }: Props) {
           </p>
         ) : null}
 
-        <div className="rounded border border-[var(--color-rule)] p-4 dark:border-neutral-800">
+        <div className="rounded border border-[var(--color-rule)] p-4">
           <p className="text-xs font-semibold uppercase tracking-wider text-[var(--color-muted)]">
             Status
           </p>
@@ -138,7 +138,7 @@ export function PostEditor({ post }: Props) {
               type="button"
               onClick={() => save()}
               disabled={busy}
-              className="w-full rounded-full border border-[var(--color-rule)] px-4 py-2 text-sm font-medium disabled:opacity-50 dark:border-neutral-700"
+              className="w-full rounded-full border border-[var(--color-rule)] px-4 py-2 text-sm font-medium disabled:opacity-50"
             >
               {busy ? 'Saving…' : 'Save draft'}
             </button>
@@ -148,7 +148,7 @@ export function PostEditor({ post }: Props) {
                 type="button"
                 onClick={() => save('draft')}
                 disabled={busy}
-                className="w-full rounded-full border border-[var(--color-rule)] px-4 py-2 text-sm font-medium disabled:opacity-50 dark:border-neutral-700"
+                className="w-full rounded-full border border-[var(--color-rule)] px-4 py-2 text-sm font-medium disabled:opacity-50"
               >
                 Unpublish
               </button>
@@ -165,7 +165,7 @@ export function PostEditor({ post }: Props) {
           </div>
         </div>
 
-        <div className="space-y-3 rounded border border-[var(--color-rule)] p-4 dark:border-neutral-800">
+        <div className="space-y-3 rounded border border-[var(--color-rule)] p-4">
           <div>
             <label className="text-xs font-semibold uppercase tracking-wider text-[var(--color-muted)]">
               Tags

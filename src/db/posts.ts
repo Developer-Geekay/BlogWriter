@@ -96,6 +96,18 @@ export interface PostReadWrite {
   delete(id: string): Promise<void>;
 }
 
+/**
+ * Case-insensitive substring pattern for a user's search term.
+ *
+ * Regex rather than a `$text` query so partial words match while the reader is
+ * typing, and so a tag like "context-engineering" is found by typing "context".
+ * Every regex metacharacter is escaped first — an unescaped "(" typed into the
+ * search box would otherwise throw and take the page down.
+ */
+export function searchPattern(term: string): RegExp {
+  return new RegExp(term.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+}
+
 export class PostStore implements PostReadWrite {
   private constructor(private readonly posts: Collection<PostDocument>) {}
 
@@ -108,11 +120,9 @@ export class PostStore implements PostReadWrite {
     const filter: Filter<PostDocument> = {};
     if (status) filter.status = status;
     if (tag) filter.tags = tag;
-    // Regex rather than $text so partial words match while the user is typing.
     if (search?.trim()) {
-      const escaped = search.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      const rx = new RegExp(escaped, 'i');
-      filter.$or = [{ title: rx }, { excerpt: rx }, { tags: rx }];
+      const rx = searchPattern(search);
+      filter.$or = [{ title: rx }, { excerpt: rx }, { tags: rx }, { body: rx }];
     }
     return filter;
   }

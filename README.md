@@ -13,6 +13,7 @@ Built with Next.js (App Router), MongoDB, and TypeScript.
 |---|---|---|
 | Public site | `/` | Feed of published posts, serif long-form reading view, tag pages |
 | Post page | `/blog/[slug]` | Rendered Markdown, cover image, sources |
+| Search | `/search?q=` | Full-text across titles, summaries, tags, and body |
 | Admin portal | `/admin` | Post list with status, search, and AI drafting |
 | Editor | `/admin/posts/[id]/edit` | Write, publish, unpublish, delete |
 | Settings | `/admin/settings` | Site title/description and the **MCP toggle** |
@@ -50,6 +51,21 @@ Coming from the old file-based CLI? Import your Markdown posts once:
 ```bash
 npm run import-markdown          # reads content/posts/, skips anything already imported
 ```
+
+## Reading experience
+
+- **Search** sits in the header on every page and covers post titles, summaries,
+  tags, and full body text. Matching topics are surfaced as shortcuts to their tag
+  page. Press `/` anywhere to jump to the search box.
+- **Theme toggle** in the header switches light/dark and remembers the choice; it
+  follows your system setting until you override it. An inline script applies the
+  stored theme before first paint, so there is no flash on load.
+- **Writing is single-author**, so the "Write" button only appears when you are
+  signed in. Readers never see a control they cannot use — the footer has a quiet
+  "Sign in" link instead.
+- **Brand** — the logo mark is in `components/BrandLogo.tsx`; the wordmark next to
+  it is whatever `siteTitle` is set to in **Settings**, so renaming the blog needs
+  no code change.
 
 ## Managing posts
 
@@ -165,7 +181,7 @@ npm run cli linkedin:auth
 npm test
 ```
 
-62 tests covering the MCP tool surface (including that publishing and deletion are absent
-unless enabled), session signing and tampering, slug generation, and Markdown front-matter
-round-tripping. They make no network calls and need no database — the store layer is behind
+70 tests covering the MCP tool surface (including that publishing and deletion are absent
+unless enabled), search matching and regex escaping, session signing and tampering, slug
+generation, and Markdown front-matter round-tripping. They make no network calls and need no database — the store layer is behind
 an interface with an in-memory implementation that mirrors the MongoDB one's behaviour.

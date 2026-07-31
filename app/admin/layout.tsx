@@ -12,7 +12,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   return (
     <div className="mx-auto max-w-6xl px-5 py-8">
-      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[var(--color-rule)] pb-4 dark:border-neutral-800">
+      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[var(--color-rule)] pb-4">
         <nav className="flex items-center gap-6 text-sm font-medium">
           <Link href="/admin" className="hover:text-[var(--color-accent)]">
             Posts

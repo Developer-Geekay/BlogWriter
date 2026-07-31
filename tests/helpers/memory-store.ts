@@ -29,7 +29,8 @@ export class MemoryPostStore implements PostReadWrite {
         (p) =>
           p.title.toLowerCase().includes(needle) ||
           p.excerpt.toLowerCase().includes(needle) ||
-          p.tags.some((t) => t.toLowerCase().includes(needle)),
+          p.tags.some((t) => t.toLowerCase().includes(needle)) ||
+          p.body.toLowerCase().includes(needle),
       );
     }
     found.sort((a, b) => (b.publishedAt ?? b.updatedAt).localeCompare(a.publishedAt ?? a.updatedAt));

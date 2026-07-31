@@ -291,6 +291,39 @@ describe('list_posts and get_post', () => {
     expect(found.posts[0].title).toBe('Second Post');
   });
 
+  // The public search box relies on body text being searchable, not just
+  // metadata — a reader looking for a phrase they remember should find it.
+  it('searches the body text', async () => {
+    await call(client, 'create_post', {
+      title: 'Unrelated Title',
+      body: 'This one mentions kubernetes operators in the body and nowhere else at all.',
+    });
+
+    const found = JSON.parse(resultText(await call(client, 'list_posts', { search: 'kubernetes' })));
+
+    expect(found.count).toBe(1);
+    expect(found.posts[0].title).toBe('Unrelated Title');
+  });
+
+  it('matches a partial tag so "context" finds "context-engineering"', async () => {
+    await call(client, 'create_post', {
+      title: 'Tagged Post',
+      body: BODY,
+      tags: ['context-engineering'],
+    });
+
+    const found = JSON.parse(resultText(await call(client, 'list_posts', { search: 'context' })));
+
+    expect(found.posts.some((p: { title: string }) => p.title === 'Tagged Post')).toBe(true);
+  });
+
+  it('does not throw on a query containing regex characters', async () => {
+    const result = await call(client, 'list_posts', { search: 'what(s) up?' });
+
+    expect(result.isError).toBeFalsy();
+    expect(JSON.parse(resultText(result)).count).toBe(0);
+  });
+
   it('returns the full body by slug', async () => {
     const post = JSON.parse(resultText(await call(client, 'get_post', { slug: 'first-post' })));
 

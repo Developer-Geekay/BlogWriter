@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { PostStore } from '@/src/db/posts';
 import { SettingsStore } from '@/src/db/settings';
 import { PostCard } from '@/components/PostCard';
-import { DatabaseError } from '@/src/db/client';
+import { DatabaseErrorNotice, asDatabaseError } from '@/components/DatabaseErrorNotice';
 
 // Posts change when the author publishes, so never serve a cached shell.
 export const dynamic = 'force-dynamic';
@@ -20,20 +20,12 @@ export default async function HomePage() {
       (await SettingsStore.open()).get().then((s) => s.siteDescription),
     ]);
   } catch (err) {
-    if (err instanceof DatabaseError) {
-      return (
-        <div className="mx-auto max-w-2xl px-5 py-24">
-          <h1 className="text-2xl font-bold">The database is not reachable</h1>
-          <p className="mt-3 whitespace-pre-line text-[var(--color-muted)]">{err.message}</p>
-        </div>
-      );
-    }
-    throw err;
+    return <DatabaseErrorNotice error={asDatabaseError(err)} />;
   }
 
   return (
-    <div className="mx-auto max-w-5xl px-5">
-      <section className="border-b border-[var(--color-rule)] py-16 dark:border-neutral-800">
+    <div className="mx-auto max-w-6xl px-5">
+      <section className="border-b border-[var(--color-rule)] py-16">
         <p className="max-w-2xl text-3xl font-bold leading-tight tracking-tight sm:text-4xl">
           {description}
         </p>
@@ -66,7 +58,7 @@ export default async function HomePage() {
                 <Link
                   key={tag}
                   href={`/tag/${encodeURIComponent(tag)}`}
-                  className="rounded-full bg-neutral-100 px-3 py-1 text-sm hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700"
+                  className="rounded-full bg-[var(--color-raised)] px-3 py-1 text-sm hover:opacity-80"
                 >
                   {tag} <span className="text-[var(--color-muted)]">{count}</span>
                 </Link>

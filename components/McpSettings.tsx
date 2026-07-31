@@ -39,7 +39,7 @@ export function McpSettings({
   }
 
   return (
-    <section className="rounded border border-[var(--color-rule)] p-6 dark:border-neutral-800">
+    <section className="rounded border border-[var(--color-rule)] p-6">
       <div className="flex items-start justify-between gap-6">
         <div>
           <h2 className="text-lg font-semibold">MCP endpoint</h2>
@@ -76,12 +76,12 @@ export function McpSettings({
       ) : null}
 
       {settings.mcpEnabled ? (
-        <div className="mt-6 space-y-5 border-t border-[var(--color-rule)] pt-5 dark:border-neutral-800">
+        <div className="mt-6 space-y-5 border-t border-[var(--color-rule)] pt-5">
           <div>
             <p className="text-xs font-semibold uppercase tracking-wider text-[var(--color-muted)]">
               Endpoint URL
             </p>
-            <code className="mt-1 block overflow-x-auto rounded bg-neutral-100 px-3 py-2 text-sm dark:bg-neutral-900">
+            <code className="mt-1 block overflow-x-auto rounded bg-[var(--color-raised)] px-3 py-2 text-sm">
               {endpoint}
             </code>
           </div>
@@ -103,7 +103,7 @@ export function McpSettings({
 
             {freshToken ? (
               <div className="mt-2">
-                <code className="block overflow-x-auto rounded bg-neutral-100 px-3 py-2 text-sm dark:bg-neutral-900">
+                <code className="block overflow-x-auto rounded bg-[var(--color-raised)] px-3 py-2 text-sm">
                   {freshToken}
                 </code>
                 <p className="mt-1 text-xs text-amber-700 dark:text-amber-400">
@@ -140,7 +140,7 @@ export function McpSettings({
             <summary className="cursor-pointer text-[var(--color-muted)]">
               How to connect an external client
             </summary>
-            <pre className="mt-2 overflow-x-auto rounded bg-neutral-100 p-3 text-xs dark:bg-neutral-900">
+            <pre className="mt-2 overflow-x-auto rounded bg-[var(--color-raised)] p-3 text-xs">
 {`{
   "mcpServers": {
     "blog": {

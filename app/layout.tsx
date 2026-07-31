@@ -1,6 +1,10 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { SettingsStore } from '@/src/db/settings';
+import { currentSession } from '@/src/auth/guard';
+import { BrandLogo } from '@/components/BrandLogo';
+import { SearchBox } from '@/components/SearchBox';
+import { ThemeToggle, themeScript } from '@/components/ThemeToggle';
 import './globals.css';
 
 /**
@@ -28,34 +32,46 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const { title } = await siteMeta();
+  // Writing is single-author, so the compose entry point is only shown to the
+  // signed-in owner. Readers never see a control they cannot use.
+  const session = await currentSession();
 
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        {/* Applies the stored theme before first paint to avoid a flash. */}
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+      </head>
       <body className="min-h-screen flex flex-col">
-        <header className="border-b border-[var(--color-rule)] dark:border-neutral-800">
-          <div className="mx-auto flex h-16 max-w-5xl items-center justify-between px-5">
-            <Link href="/" className="text-xl font-bold tracking-tight">
-              {title}
-            </Link>
-            <nav className="flex items-center gap-6 text-sm">
-              <Link href="/" className="hover:text-[var(--color-accent)]">
-                Home
-              </Link>
-              <Link
-                href="/admin"
-                className="rounded-full bg-[var(--color-accent)] px-4 py-1.5 text-white hover:opacity-90"
-              >
-                Write
-              </Link>
+        <header className="sticky top-0 z-20 border-b border-[var(--color-rule)] bg-[var(--color-surface)]/85 backdrop-blur">
+          <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-5">
+            <BrandLogo title={title} />
+
+            <nav className="flex items-center gap-2 sm:gap-3">
+              <SearchBox />
+              <ThemeToggle />
+              {session ? (
+                <Link
+                  href="/admin"
+                  className="rounded-full bg-[var(--color-accent)] px-4 py-1.5 text-sm font-medium text-white hover:opacity-90"
+                >
+                  Write
+                </Link>
+              ) : null}
             </nav>
           </div>
         </header>
 
         <main className="flex-1">{children}</main>
 
-        <footer className="border-t border-[var(--color-rule)] dark:border-neutral-800">
-          <div className="mx-auto max-w-5xl px-5 py-8 text-sm text-[var(--color-muted)]">
-            {title}
+        <footer className="border-t border-[var(--color-rule)]">
+          <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-5 py-8 text-sm text-[var(--color-muted)]">
+            <span>
+              © {new Date().getFullYear()} {title}
+            </span>
+            <Link href="/admin" className="hover:text-[var(--color-ink)]">
+              {session ? 'Portal' : 'Sign in'}
+            </Link>
           </div>
         </footer>
       </body>

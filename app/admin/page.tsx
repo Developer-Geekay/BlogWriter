@@ -60,7 +60,7 @@ export default async function AdminDashboard() {
       ) : (
         <table className="mt-8 w-full border-collapse text-sm">
           <thead>
-            <tr className="border-b border-[var(--color-rule)] text-left text-xs uppercase tracking-wider text-[var(--color-muted)] dark:border-neutral-800">
+            <tr className="border-b border-[var(--color-rule)] text-left text-xs uppercase tracking-wider text-[var(--color-muted)]">
               <th className="pb-2 font-semibold">Title</th>
               <th className="pb-2 font-semibold">Status</th>
               <th className="pb-2 font-semibold">Date</th>
@@ -72,7 +72,7 @@ export default async function AdminDashboard() {
             {posts.map((post) => (
               <tr
                 key={post.id}
-                className="border-b border-[var(--color-rule)] dark:border-neutral-800"
+                className="border-b border-[var(--color-rule)]"
               >
                 <td className="py-3 pr-4">
                   <Link
@@ -95,7 +95,7 @@ export default async function AdminDashboard() {
                     className={
                       post.status === 'published'
                         ? 'rounded-full bg-green-100 px-2 py-0.5 text-xs text-green-800'
-                        : 'rounded-full bg-neutral-100 px-2 py-0.5 text-xs text-neutral-700 dark:bg-neutral-800 dark:text-neutral-300'
+                        : 'rounded-full bg-[var(--color-raised)] px-2 py-0.5 text-xs text-neutral-700'
                     }
                   >
                     {post.status}

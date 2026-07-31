@@ -50,7 +50,7 @@ function LoginForm() {
         required
         value={email}
         onChange={(e) => setEmail(e.target.value)}
-        className="mt-1 w-full rounded border border-[var(--color-rule)] px-3 py-2 dark:border-neutral-700 dark:bg-neutral-900"
+        className="mt-1 w-full rounded border border-[var(--color-rule)] bg-[var(--color-raised)] px-3 py-2 outline-none focus:border-[var(--color-accent)]"
       />
 
       <label className="mt-4 block text-sm font-medium" htmlFor="password">
@@ -63,7 +63,7 @@ function LoginForm() {
         required
         value={password}
         onChange={(e) => setPassword(e.target.value)}
-        className="mt-1 w-full rounded border border-[var(--color-rule)] px-3 py-2 dark:border-neutral-700 dark:bg-neutral-900"
+        className="mt-1 w-full rounded border border-[var(--color-rule)] bg-[var(--color-raised)] px-3 py-2 outline-none focus:border-[var(--color-accent)]"
       />
 
       {error ? (
