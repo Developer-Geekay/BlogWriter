@@ -1,4 +1,4 @@
-# Blog portal
+# Scratchpad
 
 A full-stack blogging portal — a Medium-style public site plus an admin portal for
 writing and managing posts, backed by MongoDB. It also exposes an **MCP endpoint** so an
@@ -63,10 +63,11 @@ npm run import-markdown          # reads content/posts/, skips anything already 
 - **Writing is single-author**, so the "Write" button only appears when you are
   signed in, and there is no sign-in link anywhere on the public site. Readers never
   see a control they cannot use. Reach the portal by going to `/admin` directly.
-- **Brand** — the site title and tagline are only *defaults* (currently the author's
-  name). Both are editable at **Settings → Site** and stored in the database, so
-  renaming needs no code change — the monogram is derived from the title's first
-  letter, so it follows along automatically.
+- **Brand** — "Scratchpad" and its tagline are only *defaults*. Both are editable at
+  **Settings → Site** and stored in the database, so renaming needs no code change —
+  the monogram is derived from the title's first letter, so it follows along
+  automatically. Internal identifiers (database name, MCP server id, theme storage
+  key) deliberately stay generic so they do not churn on a rebrand.
 
 ## Managing posts
 

@@ -7,7 +7,7 @@ import Link from 'next/link';
  * letter — so renaming the blog never means editing this file or redrawing an
  * icon. A monogram suits a personal byline better than a generic writing glyph.
  */
-export function BrandLogo({ title }: { title: string }) {
+export function BrandLogo({ title, author }: { title: string; author?: string }) {
   const initial = title.trim().charAt(0).toUpperCase() || 'B';
 
   return (
@@ -18,7 +18,14 @@ export function BrandLogo({ title }: { title: string }) {
       >
         {initial}
       </span>
-      <span className="text-lg font-bold tracking-tight">{title}</span>
+      <span className="flex flex-col leading-none">
+        <span className="text-lg font-bold tracking-tight">{title}</span>
+        {author ? (
+          <span className="mt-0.5 text-xs font-normal text-[var(--color-muted)]">
+            by {author}
+          </span>
+        ) : null}
+      </span>
     </Link>
   );
 }

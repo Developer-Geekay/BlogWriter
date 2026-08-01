@@ -74,8 +74,14 @@ export type User = z.infer<typeof UserSchema>;
  * it must not require a redeploy.
  */
 export const SettingsSchema = z.object({
-  siteTitle: z.string().default('Gokulakannan'),
-  siteDescription: z.string().default('Engineering notes on AI systems, retrieval, and shipping software.'),
+  siteTitle: z.string().default('Scratchpad'),
+  siteDescription: z.string().default('Working notes on AI systems, retrieval, and shipping software.'),
+  /**
+   * Shown as a byline beside the wordmark. The publication name says what this
+   * is; the byline says whose it is, which the domain alone cannot do once the
+   * title stops repeating the author's name. Empty hides it.
+   */
+  siteAuthor: z.string().default('Gokulakannan'),
   /**
    * Master switch for the MCP endpoint. When false, `/api/mcp` refuses every
    * request — this is the toggle that disconnects external AI portals without

@@ -8,6 +8,7 @@ export function SiteSettings({ initial }: { initial: PublicSettings }) {
   const router = useRouter();
   const [siteTitle, setSiteTitle] = useState(initial.siteTitle);
   const [siteDescription, setSiteDescription] = useState(initial.siteDescription);
+  const [siteAuthor, setSiteAuthor] = useState(initial.siteAuthor);
   const [busy, setBusy] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -19,7 +20,7 @@ export function SiteSettings({ initial }: { initial: PublicSettings }) {
     const response = await fetch('/api/settings', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ siteTitle, siteDescription }),
+      body: JSON.stringify({ siteTitle, siteDescription, siteAuthor }),
     });
     if (!response.ok) {
       const data = await response.json().catch(() => ({}));
@@ -43,6 +44,16 @@ export function SiteSettings({ initial }: { initial: PublicSettings }) {
         Title
       </label>
       <input value={siteTitle} onChange={(e) => setSiteTitle(e.target.value)} className={field} />
+
+      <label className="mt-4 block text-xs font-semibold uppercase tracking-wider text-[var(--color-muted)]">
+        Author byline
+      </label>
+      <input
+        value={siteAuthor}
+        onChange={(e) => setSiteAuthor(e.target.value)}
+        placeholder="Shown as “by …” next to the logo. Leave empty to hide."
+        className={field}
+      />
 
       <label className="mt-4 block text-xs font-semibold uppercase tracking-wider text-[var(--color-muted)]">
         Description

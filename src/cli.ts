@@ -95,7 +95,7 @@ program
       posts.count({ status: 'archived' }),
     ]);
 
-    log.heading('Gokulakannan');
+    log.heading('Scratchpad');
     log.info(`  admins      ${users}`);
     log.info(`  published   ${published}`);
     log.info(`  drafts      ${drafts}`);

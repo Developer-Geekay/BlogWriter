@@ -8,6 +8,7 @@ export const runtime = 'nodejs';
 const SettingsPatchSchema = z.object({
   siteTitle: z.string().trim().min(1).optional(),
   siteDescription: z.string().trim().optional(),
+  siteAuthor: z.string().trim().optional(),
   mcpEnabled: z.boolean().optional(),
   mcpAllowPublish: z.boolean().optional(),
   /** Ask for a brand new bearer token; the previous one stops working at once. */

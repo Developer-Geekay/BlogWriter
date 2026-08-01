@@ -13,12 +13,20 @@ import './globals.css';
  * we still render — a broken connection should not take the whole site down
  * before the error page can explain itself.
  */
-async function siteMeta(): Promise<{ title: string; description: string }> {
+async function siteMeta(): Promise<{ title: string; description: string; author: string }> {
   try {
     const settings = await (await SettingsStore.open()).get();
-    return { title: settings.siteTitle, description: settings.siteDescription };
+    return {
+      title: settings.siteTitle,
+      description: settings.siteDescription,
+      author: settings.siteAuthor,
+    };
   } catch {
-    return { title: 'Gokulakannan', description: 'Engineering notes on AI systems, retrieval, and shipping software.' };
+    return {
+      title: 'Scratchpad',
+      description: 'Working notes on AI systems, retrieval, and shipping software.',
+      author: 'Gokulakannan',
+    };
   }
 }
 
@@ -31,7 +39,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const { title } = await siteMeta();
+  const { title, author } = await siteMeta();
   // Writing is single-author, so the compose entry point is only shown to the
   // signed-in owner. Readers never see a control they cannot use.
   const session = await currentSession();
@@ -45,7 +53,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <body className="min-h-screen flex flex-col">
         <header className="sticky top-0 z-20 border-b border-[var(--color-rule)] bg-[var(--color-surface)]/85 backdrop-blur">
           <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-5">
-            <BrandLogo title={title} />
+            <BrandLogo title={title} author={author} />
 
             <nav className="flex items-center gap-2 sm:gap-3">
               <SearchBox />
@@ -67,7 +75,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <footer className="border-t border-[var(--color-rule)]">
           <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-5 py-8 text-sm text-[var(--color-muted)]">
             <span>
-              © {new Date().getFullYear()} {title}
+              © {new Date().getFullYear()} {author || title}
             </span>
             {/* No sign-in link: the sole author reaches /admin directly, and
                 advertising the login to readers invites traffic at it. */}
