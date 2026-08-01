@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { SettingsStore } from '@/src/db/settings';
 import { currentSession } from '@/src/auth/guard';
+import { Analytics } from '@/components/Analytics';
 import { BrandLogo } from '@/components/BrandLogo';
 import { SearchBox } from '@/components/SearchBox';
 import { ThemeToggle, themeScript } from '@/components/ThemeToggle';
@@ -60,9 +61,11 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             <nav className="flex items-center gap-2 sm:gap-3">
               <SearchBox />
               <ThemeToggle />
+              {/* The single compose entry point in the whole app. The admin
+                  nav and dashboard used to repeat it; one control, one place. */}
               {session ? (
                 <Link
-                  href="/admin"
+                  href="/admin/posts/new"
                   className="rounded-full bg-[var(--color-accent)] px-4 py-1.5 text-sm font-medium text-white hover:opacity-90"
                 >
                   Write
@@ -74,20 +77,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 
         <main className="flex-1">{children}</main>
 
-        <footer className="border-t border-[var(--color-rule)]">
-          <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-5 py-8 text-sm text-[var(--color-muted)]">
-            <span>
-              © {new Date().getFullYear()} {author || title}
-            </span>
-            {/* No sign-in link: the sole author reaches /admin directly, and
-                advertising the login to readers invites traffic at it. */}
-            {session ? (
-              <Link href="/admin" className="hover:text-[var(--color-ink)]">
-                Portal
-              </Link>
-            ) : null}
-          </div>
-        </footer>
+        <Analytics />
       </body>
     </html>
   );

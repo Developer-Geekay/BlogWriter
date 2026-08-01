@@ -33,24 +33,17 @@ export default async function AdminDashboard() {
 
   return (
     <div>
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Posts</h1>
-          <p className="mt-1 text-sm text-[var(--color-muted)]">
-            {counts.published} published · {counts.draft} draft · {counts.archived} archived
-          </p>
-        </div>
-        <Link
-          href="/admin/posts/new"
-          className="rounded-full bg-[var(--color-accent)] px-4 py-2 text-sm font-medium text-white"
-        >
-          New post
-        </Link>
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight">Posts</h1>
+        <p className="mt-1 text-sm text-[var(--color-muted)]">
+          {counts.published} published · {counts.draft} draft · {counts.archived} archived
+        </p>
       </div>
 
       {posts.length === 0 ? (
         <p className="py-16 text-[var(--color-muted)]">
-          No posts yet. Write one here, or let a connected AI client draft one over MCP.
+          No posts yet. Use <span className="font-medium">Write</span> above, or let a
+          connected AI client draft one over MCP.
         </p>
       ) : (
         <table className="mt-8 w-full border-collapse text-sm">

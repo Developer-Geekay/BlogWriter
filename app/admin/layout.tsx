@@ -17,9 +17,6 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           <Link href="/admin" className="hover:text-[var(--color-accent)]">
             Posts
           </Link>
-          <Link href="/admin/posts/new" className="hover:text-[var(--color-accent)]">
-            New post
-          </Link>
           <Link href="/admin/settings" className="hover:text-[var(--color-accent)]">
             Settings
           </Link>
