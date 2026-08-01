@@ -71,6 +71,8 @@ npm run import-markdown          # reads content/posts/, skips anything already 
 - **Writing is single-author**, so the "Write" button only appears when you are
   signed in, and there is no sign-in link anywhere on the public site. Readers never
   see a control they cannot use. Reach the portal by going to `/admin` directly.
+  It is also the *only* way to start a post — the admin nav and dashboard used to
+  repeat the same action under a different name, so one control now lives in one place.
 - **Brand** — "Scratchpad" and the author byline are only *defaults*. Both are editable at
   **Settings → Site** and stored in the database, so renaming needs no code change —
   the monogram is derived from the title's first letter, so it follows along
@@ -156,6 +158,30 @@ npm run mcp
 }
 ```
 
+## Analytics
+
+Visits are reported to an external analytics platform, which is **off unless you point it
+at a host**:
+
+```bash
+NEXT_PUBLIC_ANALYTICS_HOST=https://analytics.example.com
+```
+
+With it unset — the default for local development — the SDK is never loaded and no beacon
+is sent. The platform is multi-tenant, and the two tenant IDs for this blog live in
+`src/analytics/config.ts`: a production build reports under the production tenant, every
+other build under the development one, so local experiments don't land in the real
+numbers. `NEXT_PUBLIC_ANALYTICS_SITE_ID` overrides the choice if you need a third
+environment.
+
+Being a `NEXT_PUBLIC_*` value, the host is baked into the browser bundle at build time —
+changing it means rebuilding, not just restarting.
+
+Two decisions worth knowing about: the SDK's own auto-tracking is switched off and visits
+are reported from the Next router instead (the SDK hooks `history.pushState`, which the
+router also drives, so leaving both on double-counts every navigation), and `/admin` is
+never tracked — it's one person editing their own site, and those URLs carry post IDs.
+
 ## Security notes
 
 - Admin pages are gated by middleware *and* every API route re-checks the session, so a
@@ -192,10 +218,12 @@ npm run cli linkedin:auth
 npm test
 ```
 
-78 tests covering the MCP tool surface (including that publishing and deletion are absent
+94 tests covering the MCP tool surface (including that publishing and deletion are absent
 unless enabled), search matching and regex escaping, session signing and tampering, slug
-generation, Markdown front-matter round-tripping, and the typewriter empty state (timing,
-reduced-motion fallback, screen-reader text, timer cleanup on unmount).
+generation, Markdown front-matter round-tripping, the typewriter empty state (timing,
+reduced-motion fallback, screen-reader text, timer cleanup on unmount), and analytics
+(tenant selection, admin exclusion, one visit per navigation with none lost while the SDK
+is still loading).
 
 They make no network calls and need no database — the store layer sits behind an interface
 with an in-memory implementation that mirrors the MongoDB one's behaviour. Component tests

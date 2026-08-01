@@ -38,6 +38,8 @@ SITE_URL=https://blog.gokulakannan.dev   # canonical links + the MCP endpoint sh
 
 # ---- optional ----
 MONGODB_DB=blog          # only if the URI has no database in its path
+NEXT_PUBLIC_ANALYTICS_HOST=https://analytics.example.com   # unset = no tracking at all
+NEXT_PUBLIC_ANALYTICS_SITE_ID=   # override the tenant; normally leave blank
 LINKEDIN_CLIENT_ID=      # LinkedIn cross-posting (npm run cli linkedin:auth)
 LINKEDIN_CLIENT_SECRET=
 LINKEDIN_ACCESS_TOKEN=
@@ -46,6 +48,12 @@ LINKEDIN_PERSON_URN=
 
 **The MCP endpoint's on/off switch and bearer token are not here.** They live in the
 database and are managed at `/admin/settings`, so they change without a redeploy.
+
+**`NEXT_PUBLIC_*` values are read at build time, not at startup.** Next inlines them
+into the browser bundle, so they must be in the environment when `npm run build` runs.
+Changing one means rebuilding — restarting the service is not enough. Because of that,
+`EnvironmentFile=` in systemd covers the runtime variables only; export the analytics
+host in the shell that builds, or keep it in the `.env` file the build reads.
 
 `SESSION_SECRET` is what signs the admin cookie. Changing it signs every session out —
 which is also how you force a logout if a laptop goes missing.
@@ -72,7 +80,7 @@ npm start              # next start, listens on $PORT (default 3000)
 >    `import-markdown` all run through it, so pruning leaves you unable to create an
 >    admin account on the box.
 >
-> Either keep the full install, or use the standalone build in §8, which produces a
+> Either keep the full install, or use the standalone build in §9, which produces a
 > slim runtime bundle without pruning your working tree.
 
 Sanity-check the build before wiring up a service:
@@ -232,7 +240,42 @@ npm run import-markdown           # reads content/posts/, skips anything already
 
 ---
 
-## 8. Optional: standalone build (smaller runtime)
+## 8. Analytics
+
+Page visits are reported to an external multi-tenant analytics platform. Two tenant
+UUIDs are registered for this blog and both live in `src/analytics/config.ts`:
+
+| Environment | Tenant ID |
+| :--- | :--- |
+| production | `cd6dae88-d6b4-4f4a-9624-4fa263b66438` |
+| development | `237c8104-412c-4f8b-a506-a50965c796df` |
+
+The tenant is chosen by `NODE_ENV` at build time, so a production build reports under
+the production tenant and everything else lands in the development one. Nothing is sent
+unless `NEXT_PUBLIC_ANALYTICS_HOST` is set — with it unset the SDK is never loaded, so
+local development is silent by default.
+
+```bash
+NEXT_PUBLIC_ANALYTICS_HOST=https://analytics.example.com   # your analytics server origin
+```
+
+Two deliberate choices in the integration:
+
+- **Auto-tracking is off** (`data-auto-track="false"`). The SDK patches
+  `history.pushState`, which the Next.js router also drives, so leaving it on
+  double-counts every client-side navigation. Visits are reported once, from the
+  router, in `components/Analytics.tsx`.
+- **`/admin` is excluded.** Those URLs are one person editing their own site and they
+  carry post IDs; tracking them would inflate the numbers and push internal identifiers
+  into a third-party dataset.
+
+Verify after deploying: load the site in a browser, and confirm a `POST` to
+`/api/analytics/visit` on your analytics host in the Network tab. A 200 with
+`{"success": true}` means the tenant is receiving data.
+
+---
+
+## 9. Optional: standalone build (smaller runtime)
 
 Next can emit a self-contained server with only the modules it actually needs — **79 MB
 against 717 MB** for a full `node_modules` here. Worth it if you build elsewhere and ship
@@ -271,7 +314,7 @@ the supported one.
 
 ---
 
-## 9. Updating
+## 10. Updating
 
 ```bash
 cd /srv/blog
@@ -298,7 +341,7 @@ document is read.
 
 ---
 
-## 10. Backups
+## 11. Backups
 
 ```bash
 mongodump --uri="$MONGODB_URI" --out /backup/blog-$(date +%F)
@@ -315,7 +358,7 @@ mongorestore --uri="$MONGODB_URI" --drop /backup/blog-2026-08-01/blog
 
 ---
 
-## 11. Troubleshooting
+## 12. Troubleshooting
 
 | Symptom | Cause |
 |---|---|
