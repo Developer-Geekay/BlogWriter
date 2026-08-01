@@ -65,3 +65,23 @@ mark {
   padding: 0 0.1em;
   border-radius: 2px;
 }
+
+/* Typewriter caret on the empty home page. */
+@keyframes caret-blink {
+  0%, 45% { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+
+.caret {
+  display: inline-block;
+  width: 2px;
+  height: 1.05em;
+  margin-left: 3px;
+  translate: 0 0.14em;
+  background: var(--color-accent);
+  animation: caret-blink 1s steps(1) infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .caret { animation: none; }
+}

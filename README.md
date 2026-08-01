@@ -54,6 +54,10 @@ npm run import-markdown          # reads content/posts/, skips anything already 
 
 ## Reading experience
 
+- **Empty state** — with nothing published, the home page gives itself over to a
+  rotating thought typed out character by character. Readers who prefer reduced
+  motion get one thought, static; screen readers get one stable sentence rather
+  than a keystroke-by-keystroke announcement.
 - **Search** sits in the header on every page and covers post titles, summaries,
   tags, and full body text. Matching topics are surfaced as shortcuts to their tag
   page. Press `/` anywhere to jump to the search box.
@@ -183,7 +187,11 @@ npm run cli linkedin:auth
 npm test
 ```
 
-70 tests covering the MCP tool surface (including that publishing and deletion are absent
+78 tests covering the MCP tool surface (including that publishing and deletion are absent
 unless enabled), search matching and regex escaping, session signing and tampering, slug
-generation, and Markdown front-matter round-tripping. They make no network calls and need no database — the store layer is behind
-an interface with an in-memory implementation that mirrors the MongoDB one's behaviour.
+generation, Markdown front-matter round-tripping, and the typewriter empty state (timing,
+reduced-motion fallback, screen-reader text, timer cleanup on unmount).
+
+They make no network calls and need no database — the store layer sits behind an interface
+with an in-memory implementation that mirrors the MongoDB one's behaviour. Component tests
+opt into jsdom per-file; everything else runs in plain Node.
