@@ -46,6 +46,10 @@ npm run dev
 
 Then open http://localhost:3000 for the site and http://localhost:3000/admin to write.
 
+Deploying to a server? See **[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)** — it covers running
+this as a long-running Node process behind nginx, with systemd, TLS, and the two
+non-obvious proxy settings the AI drafting and MCP endpoints need.
+
 Coming from the old file-based CLI? Import your Markdown posts once:
 
 ```bash
