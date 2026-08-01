@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { PostStore } from '@/src/db/posts';
 import { PostCreateSchema, POST_STATUSES, type PostStatus } from '@/src/db/types';
 import { requireSession } from '@/src/auth/guard';
+import { storageFailure } from '@/src/api/errors';
 import { InvalidSlugError } from '@/src/store/slug';
 
 export const runtime = 'nodejs';
@@ -28,7 +29,6 @@ export async function GET(request: Request) {
     status = 'published';
   }
 
-  const store = await PostStore.open();
   const options = {
     ...(status ? { status } : {}),
     ...(url.searchParams.get('tag') ? { tag: url.searchParams.get('tag')! } : {}),
@@ -37,8 +37,13 @@ export async function GET(request: Request) {
     skip: Math.max(Number(url.searchParams.get('skip') ?? 0) || 0, 0),
   };
 
-  const [posts, total] = await Promise.all([store.list(options), store.count(options)]);
-  return NextResponse.json({ posts, total });
+  try {
+    const store = await PostStore.open();
+    const [posts, total] = await Promise.all([store.list(options), store.count(options)]);
+    return NextResponse.json({ posts, total });
+  } catch (err) {
+    return storageFailure(err);
+  }
 }
 
 export async function POST(request: Request) {
@@ -60,6 +65,6 @@ export async function POST(request: Request) {
     if (err instanceof InvalidSlugError) {
       return NextResponse.json({ error: err.message }, { status: 400 });
     }
-    throw err;
+    return storageFailure(err);
   }
 }

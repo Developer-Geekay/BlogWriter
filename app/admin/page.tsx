@@ -2,7 +2,6 @@ import Link from 'next/link';
 import { PostStore } from '@/src/db/posts';
 import { DatabaseError } from '@/src/db/client';
 import { formatDate } from '@/components/PostCard';
-import { AiDraftForm } from '@/components/AiDraftForm';
 
 export const dynamic = 'force-dynamic';
 
@@ -49,13 +48,9 @@ export default async function AdminDashboard() {
         </Link>
       </div>
 
-      <div className="mt-6">
-        <AiDraftForm />
-      </div>
-
       {posts.length === 0 ? (
         <p className="py-16 text-[var(--color-muted)]">
-          No posts yet. Write one, or let a connected AI client draft one over MCP.
+          No posts yet. Write one here, or let a connected AI client draft one over MCP.
         </p>
       ) : (
         <table className="mt-8 w-full border-collapse text-sm">

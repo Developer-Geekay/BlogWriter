@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { PostStore, PostNotFoundError, SlugTakenError } from '@/src/db/posts';
 import { PostUpdateSchema } from '@/src/db/types';
 import { requireSession } from '@/src/auth/guard';
+import { storageFailure } from '@/src/api/errors';
 import { InvalidSlugError } from '@/src/store/slug';
 
 export const runtime = 'nodejs';
@@ -10,7 +11,12 @@ type Context = { params: Promise<{ id: string }> };
 
 export async function GET(_request: Request, { params }: Context) {
   const { id } = await params;
-  const post = await (await PostStore.open()).findById(id);
+  let post;
+  try {
+    post = await (await PostStore.open()).findById(id);
+  } catch (err) {
+    return storageFailure(err);
+  }
   if (!post) return NextResponse.json({ error: 'Post not found.' }, { status: 404 });
 
   // Drafts are only visible to the author.
@@ -44,7 +50,7 @@ export async function PATCH(request: Request, { params }: Context) {
     if (err instanceof SlugTakenError || err instanceof InvalidSlugError) {
       return NextResponse.json({ error: err.message }, { status: 409 });
     }
-    throw err;
+    return storageFailure(err);
   }
 }
 
@@ -60,6 +66,6 @@ export async function DELETE(_request: Request, { params }: Context) {
     if (err instanceof PostNotFoundError) {
       return NextResponse.json({ error: err.message }, { status: 404 });
     }
-    throw err;
+    return storageFailure(err);
   }
 }

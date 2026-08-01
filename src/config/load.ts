@@ -7,7 +7,6 @@ import 'dotenv/config';
 import {
   AppConfigSchema,
   LinkedInConfigSchema,
-  ModelConfigSchema,
   ProfileSchema,
   TopicsSchema,
   WebsiteConfigSchema,
@@ -53,15 +52,14 @@ async function loadYamlFile<T extends z.ZodType>(
 }
 
 export async function loadConfig(dir = CONFIG_DIR): Promise<AppConfig> {
-  const [profile, topics, website, linkedin, model] = await Promise.all([
+  const [profile, topics, website, linkedin] = await Promise.all([
     loadYamlFile(path.join(dir, 'profile.yml'), ProfileSchema),
     loadYamlFile(path.join(dir, 'topics.yml'), TopicsSchema, { optional: true }),
     loadYamlFile(path.join(dir, 'website.yml'), WebsiteConfigSchema, { optional: true }),
     loadYamlFile(path.join(dir, 'linkedin.yml'), LinkedInConfigSchema, { optional: true }),
-    loadYamlFile(path.join(dir, 'model.yml'), ModelConfigSchema, { optional: true }),
   ]);
 
-  return AppConfigSchema.parse({ profile, topics, website, linkedin, model });
+  return AppConfigSchema.parse({ profile, topics, website, linkedin });
 }
 
 /**

@@ -63,41 +63,11 @@ export const LinkedInConfigSchema = z.object({
 });
 export type LinkedInConfig = z.infer<typeof LinkedInConfigSchema>;
 
-export const ModelConfigSchema = z.object({
-  id: z.string().default('claude-opus-5'),
-  /**
-   * Per-stage effort. Research and editing benefit from deliberation; the
-   * short LinkedIn rewrite does not.
-   */
-  effort: z
-    .object({
-      research: z.enum(['low', 'medium', 'high', 'xhigh', 'max']).default('high'),
-      draft: z.enum(['low', 'medium', 'high', 'xhigh', 'max']).default('xhigh'),
-      edit: z.enum(['low', 'medium', 'high', 'xhigh', 'max']).default('high'),
-      verify: z.enum(['low', 'medium', 'high', 'xhigh', 'max']).default('high'),
-      metadata: z.enum(['low', 'medium', 'high', 'xhigh', 'max']).default('low'),
-      repurpose: z.enum(['low', 'medium', 'high', 'xhigh', 'max']).default('medium'),
-    })
-    .prefault({}),
-  maxTokens: z.number().int().positive().default(32000),
-  maxSearches: z.number().int().min(0).default(8),
-  /**
-   * Server-side refusal fallback. Claude Opus 5 runs safety classifiers that
-   * can decline a request outright; with this on, the API re-runs it on a
-   * fallback model in the same call instead of returning nothing. Harmless to
-   * leave on — if the beta is not enabled for your account, the client detects
-   * the rejection and retries once without it.
-   */
-  refusalFallback: z.boolean().default(true),
-});
-export type ModelConfig = z.infer<typeof ModelConfigSchema>;
-
 export const AppConfigSchema = z.object({
   profile: ProfileSchema,
   topics: TopicsSchema,
   website: WebsiteConfigSchema,
   linkedin: LinkedInConfigSchema,
-  model: ModelConfigSchema,
   contentDir: z.string().default('content/posts'),
 });
 export type AppConfig = z.infer<typeof AppConfigSchema>;

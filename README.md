@@ -14,7 +14,7 @@ Built with Next.js (App Router), MongoDB, and TypeScript.
 | Public site | `/` | Feed of published posts, serif long-form reading view, tag pages |
 | Post page | `/blog/[slug]` | Rendered Markdown, cover image, sources |
 | Search | `/search?q=` | Full-text across titles, summaries, tags, and body |
-| Admin portal | `/admin` | Post list with status, search, and AI drafting |
+| Admin portal | `/admin` | Post list with status and counts |
 | Editor | `/admin/posts/[id]/edit` | Write, publish, unpublish, delete |
 | Settings | `/admin/settings` | Site title, byline, description, and the **MCP toggle** |
 | REST API | `/api/posts` | Full CRUD, session-authenticated |
@@ -47,8 +47,8 @@ npm run dev
 Then open http://localhost:3000 for the site and http://localhost:3000/admin to write.
 
 Deploying to a server? See **[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)** — it covers running
-this as a long-running Node process behind nginx, with systemd, TLS, and the two
-non-obvious proxy settings the AI drafting and MCP endpoints need.
+this as a long-running Node process behind nginx, with systemd, TLS, and the proxy
+settings the MCP endpoint needs.
 
 Coming from the old file-based CLI? Import your Markdown posts once:
 
@@ -85,10 +85,11 @@ published posts are reachable publicly — a draft's URL returns 404 rather than
 Publishing stamps the publish date once and never moves it, so editing a live post doesn't
 reorder your feed.
 
-**Draft with AI** on the dashboard runs the research → write → edit → fact-check → metadata
-pipeline and drops the result in as a draft. It needs `ANTHROPIC_API_KEY`; without it the
-rest of the portal is unaffected. Claims the fact-check pass couldn't source are flagged on
-the post and shown in the editor rather than being quietly published.
+AI-assisted writing happens over the **MCP endpoint** rather than inside this app: your
+own AI client does the drafting and calls `create_post`. That keeps the portal free of an
+Anthropic API key, and puts the token cost on the client's subscription. Posts arriving
+that way carry `unsupportedClaims`, shown as an amber flag in the editor so an unsourced
+claim is visible before you publish.
 
 ## The MCP endpoint
 

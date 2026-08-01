@@ -38,7 +38,6 @@ SITE_URL=https://blog.gokulakannan.dev   # canonical links + the MCP endpoint sh
 
 # ---- optional ----
 MONGODB_DB=blog          # only if the URI has no database in its path
-ANTHROPIC_API_KEY=       # enables "Draft with AI"; everything else works without it
 LINKEDIN_CLIENT_ID=      # LinkedIn cross-posting (npm run cli linkedin:auth)
 LINKEDIN_CLIENT_SECRET=
 LINKEDIN_ACCESS_TOKEN=
@@ -189,11 +188,10 @@ server {
         proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
 
-        # The MCP endpoint streams responses; do not let nginx buffer them.
+        # The MCP endpoint streams responses; do not let nginx buffer them,
+        # and give a held-open stream longer than the 60s default.
         proxy_buffering off;
-
-        # "Draft with AI" runs a multi-minute research-and-write pipeline.
-        proxy_read_timeout 900s;
+        proxy_read_timeout 300s;
     }
 }
 ```
@@ -204,11 +202,9 @@ sudo certbot --nginx -d blog.gokulakannan.dev
 sudo nginx -t && sudo systemctl reload nginx
 ```
 
-Two settings above are not boilerplate:
-
-- **`proxy_read_timeout 900s`** — the AI drafting route declares `maxDuration = 800`.
-  At nginx's 60-second default, drafting dies with a 504 mid-run.
-- **`proxy_buffering off`** — the MCP endpoint uses Streamable HTTP.
+Both of those exist for the MCP endpoint, which uses Streamable HTTP: buffering would
+hold a streamed response back, and nginx's 60-second default read timeout would cut an
+open stream. Ordinary page requests are unaffected either way.
 
 ---
 
@@ -327,8 +323,8 @@ mongorestore --uri="$MONGODB_URI" --drop /backup/blog-2026-08-01/blog
 | App exits at boot with a `SESSION_SECRET` error | Missing or shorter than 32 characters — deliberate, since a weak secret makes the admin cookie forgeable. |
 | Signed out on every request | `NODE_ENV=production` without HTTPS. The cookie is `Secure` and the browser drops it. |
 | Settings shows an `http://` MCP URL | nginx is not sending `X-Forwarded-Proto`. Set `SITE_URL` as a belt-and-braces fix. |
-| "Draft with AI" 504s after ~60s | nginx `proxy_read_timeout` still at its default. |
 | MCP client gets 503 | The toggle is off, which is its normal resting state. Enable it in Settings. |
 | MCP client gets 401 | Wrong or rotated bearer token. |
+| `/api/*` returns 503 "Storage is unavailable" | Same cause as the page-level notice — the database is unreachable. |
 | `npm run create-admin` → "tsx: not found" | devDependencies were pruned; see §3. |
 | Build fails on `tailwindcss` / `typescript` | Same cause — those are devDependencies. |
