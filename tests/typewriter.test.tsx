@@ -74,12 +74,20 @@ describe('TypewriterThoughts', () => {
     expect(animated()).toBe('abcd');
   });
 
-  it('moves on to the next thought after deleting', async () => {
+  it('moves on to a different thought after deleting', async () => {
     render(<TypewriterThoughts thoughts={['ab', 'xy']} />);
 
-    // Type "ab", hold, delete both characters, gap, then the next thought.
-    await advance(400 + 45 + 2600 + 22 + 22 + 500);
-    expect(animated()).toBe('x');
+    // The order is shuffled, so assert on the transition rather than on which
+    // thought comes first — pinning the order made this fail ~1 run in 5.
+    await advance(400);
+    const first = animated();
+    expect(['a', 'x']).toContain(first);
+
+    // Finish typing, hold, delete both characters, gap, next first character.
+    await advance(45 + 2600 + 22 + 22 + 500);
+    const second = animated();
+    expect(['a', 'x']).toContain(second);
+    expect(second).not.toBe(first);
   });
 
   it('shows a static thought and no caret when reduced motion is preferred', async () => {
