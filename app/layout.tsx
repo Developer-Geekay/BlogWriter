@@ -24,7 +24,7 @@ async function siteMeta(): Promise<{ title: string; description: string; author:
   } catch {
     return {
       title: 'Scratchpad',
-      description: 'Working notes on AI systems, retrieval, and shipping software.',
+      description: '',
       author: 'Gokulakannan',
     };
   }
@@ -34,7 +34,9 @@ export async function generateMetadata(): Promise<Metadata> {
   const { title, description } = await siteMeta();
   return {
     title: { default: title, template: `%s — ${title}` },
-    description,
+    // An empty description is worse than none: omit the tag rather than
+    // shipping `<meta name="description" content="">`.
+    ...(description ? { description } : {}),
   };
 }
 

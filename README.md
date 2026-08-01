@@ -16,7 +16,7 @@ Built with Next.js (App Router), MongoDB, and TypeScript.
 | Search | `/search?q=` | Full-text across titles, summaries, tags, and body |
 | Admin portal | `/admin` | Post list with status, search, and AI drafting |
 | Editor | `/admin/posts/[id]/edit` | Write, publish, unpublish, delete |
-| Settings | `/admin/settings` | Site title/description and the **MCP toggle** |
+| Settings | `/admin/settings` | Site title, byline, description, and the **MCP toggle** |
 | REST API | `/api/posts` | Full CRUD, session-authenticated |
 | MCP endpoint | `/api/mcp` | For external AI clients — off until you enable it |
 
@@ -63,7 +63,7 @@ npm run import-markdown          # reads content/posts/, skips anything already 
 - **Writing is single-author**, so the "Write" button only appears when you are
   signed in, and there is no sign-in link anywhere on the public site. Readers never
   see a control they cannot use. Reach the portal by going to `/admin` directly.
-- **Brand** — "Scratchpad" and its tagline are only *defaults*. Both are editable at
+- **Brand** — "Scratchpad" and the author byline are only *defaults*. Both are editable at
   **Settings → Site** and stored in the database, so renaming needs no code change —
   the monogram is derived from the title's first letter, so it follows along
   automatically. Internal identifiers (database name, MCP server id, theme storage

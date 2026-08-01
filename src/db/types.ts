@@ -75,7 +75,7 @@ export type User = z.infer<typeof UserSchema>;
  */
 export const SettingsSchema = z.object({
   siteTitle: z.string().default('Scratchpad'),
-  siteDescription: z.string().default('Working notes on AI systems, retrieval, and shipping software.'),
+  siteDescription: z.string().default(''),
   /**
    * Shown as a byline beside the wordmark. The publication name says what this
    * is; the byline says whose it is, which the domain alone cannot do once the
