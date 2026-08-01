@@ -1,6 +1,5 @@
 import Link from 'next/link';
 import { PostStore } from '@/src/db/posts';
-import { SettingsStore } from '@/src/db/settings';
 import { PostCard } from '@/components/PostCard';
 import { DatabaseErrorNotice, asDatabaseError } from '@/components/DatabaseErrorNotice';
 
@@ -10,14 +9,12 @@ export const dynamic = 'force-dynamic';
 export default async function HomePage() {
   let posts;
   let tags;
-  let description = '';
 
   try {
     const store = await PostStore.open();
-    [posts, tags, description] = await Promise.all([
+    [posts, tags] = await Promise.all([
       store.list({ status: 'published', limit: 25 }),
       store.tags(),
-      (await SettingsStore.open()).get().then((s) => s.siteDescription),
     ]);
   } catch (err) {
     return <DatabaseErrorNotice error={asDatabaseError(err)} />;
@@ -25,13 +22,9 @@ export default async function HomePage() {
 
   return (
     <div className="mx-auto max-w-6xl px-5">
-      <section className="border-b border-[var(--color-rule)] py-16">
-        <p className="max-w-2xl text-3xl font-bold leading-tight tracking-tight sm:text-4xl">
-          {description}
-        </p>
-      </section>
-
-      <div className="grid gap-12 py-4 md:grid-cols-[1fr_240px]">
+      {/* No tagline hero: the posts are the point of the page. The site
+          description still ships as the <meta description> for search results. */}
+      <div className="grid gap-12 py-10 md:grid-cols-[1fr_240px]">
         <div>
           {posts.length === 0 ? (
             <p className="py-16 text-[var(--color-muted)]">
