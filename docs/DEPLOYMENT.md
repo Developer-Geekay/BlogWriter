@@ -309,6 +309,7 @@ release/
 ├── node_modules/      # pruned to the modules the server actually reaches
 ├── .next/             # compiled app + static assets
 ├── public/            # if the directory exists
+├── config/            # the voice guide served over MCP
 ├── package.json       # rewritten: start = node server.js
 └── HOW-TO-RUN.md
 ```
@@ -328,6 +329,11 @@ artifact. The script handles the parts Next leaves undone:
 - **Static assets are copied in.** Next deliberately omits `.next/static` and `public`
   from the standalone directory. Without them the site serves 200s and renders unstyled,
   which is a confusing failure to debug.
+- **`config/` is copied in.** The voice guide is read from disk relative to the working
+  directory at runtime, not bundled. Without it the MCP endpoint quietly drops
+  `get_voice_guide` — connected clients still write, just with no idea what the author
+  sounds like. Confirm with a `tools/list` call: if `get_voice_guide` is absent, the
+  deployment has no `config/profile.yml`.
 - **The manifest is rewritten.** Next copies this repository's `package.json` verbatim,
   where `npm start` means `next start` — which refuses to serve a standalone build — and
   the dependency lists invite an `npm ci` that would delete the pruned `node_modules`.

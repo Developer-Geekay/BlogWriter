@@ -23,6 +23,7 @@ const rootDir = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 const standaloneDir = path.join(rootDir, '.next', 'standalone');
 const staticDir = path.join(rootDir, '.next', 'static');
 const publicDir = path.join(rootDir, 'public');
+const configDir = path.join(rootDir, 'config');
 const packageJsonFile = path.join(rootDir, 'package.json');
 const releaseDir = path.join(rootDir, 'release');
 
@@ -103,7 +104,23 @@ try {
     console.log('📦 Copied public static assets -> release/public');
   }
 
-  // 6. Rewrite the manifest Next copied over.
+  // 6. Copy the voice guide -> release/config
+  //
+  //    Read from `config/` relative to the working directory at runtime, not
+  //    bundled, so without this the MCP endpoint silently drops get_voice_guide
+  //    — a connected AI still writes, just with no idea what the author sounds
+  //    like. It degrades quietly by design, which is exactly why it has to be
+  //    packaged rather than remembered.
+  if (existsSync(configDir)) {
+    const releaseConfig = path.join(releaseDir, 'config');
+    mkdirSync(releaseConfig, { recursive: true });
+    cpSync(configDir, releaseConfig, { recursive: true });
+    console.log('📦 Copied config/ (voice guide) -> release/config');
+  } else {
+    console.warn('⚠️ Warning: no config/ — MCP clients get no voice guide.');
+  }
+
+  // 7. Rewrite the manifest Next copied over.
   //
   //    It arrives as this repository's full package.json, which is wrong in two
   //    ways inside a release: `npm start` would run `next start`, which refuses
@@ -125,7 +142,7 @@ try {
   );
   console.log('📝 Rewrote release/package.json (start = node server.js, no install step)');
 
-  // 7. A note that travels with the artifact. The instructions matter most to
+  // 8. A note that travels with the artifact. The instructions matter most to
   //    whoever unpacks this on a server, who will not have this output.
   writeFileSync(
     path.join(releaseDir, 'HOW-TO-RUN.md'),
