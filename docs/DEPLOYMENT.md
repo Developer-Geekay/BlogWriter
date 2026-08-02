@@ -394,7 +394,10 @@ mongorestore --uri="$MONGODB_URI" --drop /backup/blog-2026-08-01/blog
 | Symptom | Cause |
 |---|---|
 | "The database is not reachable" on every page | `MONGODB_URI` wrong or mongod down. The message quotes the underlying driver error. |
-| App exits at boot with a `SESSION_SECRET` error | Missing or shorter than 32 characters — deliberate, since a weak secret makes the admin cookie forgeable. |
+| `[startup] SESSION_SECRET is not set` in the log | Exactly what it says, and sign-in cannot work until it is fixed. The app still starts — readers do not need a session secret, so the public site keeps serving. |
+| Sign-in says "The server is not configured for sign-in" | `SESSION_SECRET` missing or under 32 characters. The credentials were accepted; the cookie could not be signed. |
+| Sign-in says "Incorrect email or password" in prod but works locally | Prod is talking to a different database. Check `MONGODB_URI` **and** the database name in its path — a URI with no path, plus no `MONGODB_DB`, lands somewhere else than you think. |
+| Sign-in succeeds, then bounces straight back to the login page | The cookie is set but not stored or not returned. In production it is `Secure`, so a plain-HTTP origin drops it silently — check you are on HTTPS and not hitting `:3000` directly. A `SESSION_SECRET` that changed between the signing request and the next one does the same thing. |
 | Signed out on every request | `NODE_ENV=production` without HTTPS. The cookie is `Secure` and the browser drops it. |
 | Settings shows an `http://` MCP URL | nginx is not sending `X-Forwarded-Proto`. Set `SITE_URL` as a belt-and-braces fix. |
 | MCP client gets 503 | The toggle is off, which is its normal resting state. Enable it in Settings. |

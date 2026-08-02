@@ -35,6 +35,24 @@ describe('session tokens', () => {
     expect(await readSessionToken(token)).toBeNull();
   });
 
+  it('reports a missing secret instead of reading as signed out in silence', async () => {
+    const token = await createSessionToken({ userId: '1', email: 'a@b.c', name: 'A' });
+    delete process.env['SESSION_SECRET'];
+
+    const logged: string[] = [];
+    const error = console.error;
+    console.error = (message: string) => logged.push(message);
+    try {
+      // Still null — the public site must keep rendering — but the operator
+      // now has something to find in the log.
+      expect(await readSessionToken(token)).toBeNull();
+    } finally {
+      console.error = error;
+    }
+
+    expect(logged.join('\n')).toMatch(/SESSION_SECRET/);
+  });
+
   it('rejects a tampered payload', async () => {
     const token = await createSessionToken({ userId: '1', email: 'a@b.c', name: 'A' });
     const [header, , signature] = token.split('.');
