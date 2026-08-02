@@ -6,7 +6,7 @@ import { loadConfig, ConfigError, requireEnv } from './config/load.js';
 import { PostStore } from './db/posts.js';
 import { SettingsStore } from './db/settings.js';
 import { UserStore } from './db/users.js';
-import { closeDb, DatabaseError } from './db/client.js';
+import { closeDb, describeConnection, DatabaseError } from './db/client.js';
 import { serveStdio } from './mcp/transport.js';
 import { runAuthFlow } from './publishers/linkedin-auth.js';
 import { Logger } from './util/log.js';
@@ -78,6 +78,45 @@ program
     await closeDb();
   });
 
+/**
+ * Reset the password on an existing account.
+ *
+ * The alternative is editing the user document by hand in a database GUI, which
+ * does not work: the stored value is a bcrypt hash, not a password, and pasting
+ * one account's document over another's fails outright because `_id` is
+ * immutable. This rehashes in place and touches nothing else.
+ */
+program
+  .command('set-password')
+  .description('Change the password of an existing admin account')
+  .requiredOption('-e, --email <email>', 'account email')
+  .requiredOption('-p, --password <password>', 'new password (at least 12 characters)')
+  .action(async (opts: { email: string; password: string }) => {
+    const log = new Logger();
+    if (opts.password.length < 12) {
+      log.error('Choose a password of at least 12 characters.');
+      process.exitCode = 1;
+      return;
+    }
+
+    const users = await UserStore.open();
+    const user = await users.findByEmail(opts.email);
+    if (!user) {
+      // Naming the database is the point: the usual reason this fails is being
+      // connected to a different one than expected.
+      log.error(
+        `No account for ${opts.email} in this database. ` +
+          'Check MONGODB_URI, or create it with: npm run create-admin',
+      );
+      process.exitCode = 1;
+      return;
+    }
+
+    await users.setPassword(user.id, opts.password);
+    log.success(`Password updated for ${user.email}. Sign in at /admin/login`);
+    await closeDb();
+  });
+
 program
   .command('status')
   .description('Show what is in the database and whether MCP is enabled')
@@ -95,7 +134,12 @@ program
       posts.count({ status: 'archived' }),
     ]);
 
+    // Name the connection first: "the data is not there" is almost always
+    // "this is not the database you think it is".
+    const where = describeConnection();
     log.heading('Scratchpad');
+    log.info(`  server      ${where.host}`);
+    log.info(`  database    ${where.database}`);
     log.info(`  admins      ${users}`);
     log.info(`  published   ${published}`);
     log.info(`  drafts      ${drafts}`);

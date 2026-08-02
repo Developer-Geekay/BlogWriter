@@ -30,6 +30,44 @@ function uri(): string {
 }
 
 /**
+ * Which server and database this process will actually use, with credentials
+ * stripped so it is safe to print.
+ *
+ * "The same data" living in two places that disagree is nearly always this:
+ * `MONGODB_DB` silently overriding the URI path, or a URI with no path at all,
+ * which the driver resolves to `test`. Neither is visible by reading the
+ * connection string alone, so `npm run status` reports the resolved answer.
+ */
+export function describeConnection(): { host: string; database: string } {
+  const connectionString = uri();
+
+  let host = 'unknown';
+  let fromPath = '';
+  try {
+    // Works for mongodb:// and mongodb+srv://. A seed list of several hosts is
+    // not a valid URL authority, hence the fallback below.
+    const parsed = new URL(connectionString);
+    host = parsed.host;
+    fromPath = decodeURIComponent(parsed.pathname.replace(/^\//, ''));
+  } catch {
+    const match = /^mongodb(?:\+srv)?:\/\/(?:[^@/]*@)?([^/?]+)(?:\/([^?]*))?/.exec(
+      connectionString,
+    );
+    if (match) {
+      host = match[1] ?? 'unknown';
+      fromPath = match[2] ?? '';
+    }
+  }
+
+  const named = process.env[MONGODB_DB_ENV];
+  const database = named
+    ? `${named} (from ${MONGODB_DB_ENV}${fromPath ? `, overriding "${fromPath}" in the URI` : ''})`
+    : fromPath || 'test (the URI has no database in its path)';
+
+  return { host, database };
+}
+
+/**
  * Shared connection.
  *
  * Next.js reloads modules on every edit in development, so the client is cached
@@ -61,7 +99,8 @@ export async function getDb(): Promise<Db> {
           `Check ${MONGODB_URI_ENV} and that the server is running.`,
       );
     }
-    // A database name in the URI path wins; otherwise fall back to MONGODB_DB.
+    // MONGODB_DB wins when set; otherwise the driver uses the URI path, and a
+    // URI with no path lands in `test`. See describeConnection().
     const named = process.env[MONGODB_DB_ENV];
     db = named ? client.db(named) : client.db();
     await ensureIndexes(db);

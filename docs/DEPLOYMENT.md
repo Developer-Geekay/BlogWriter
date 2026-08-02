@@ -37,7 +37,7 @@ NODE_ENV=production
 SITE_URL=https://blog.gokulakannan.dev   # canonical links + the MCP endpoint shown in Settings
 
 # ---- optional ----
-MONGODB_DB=blog          # only if the URI has no database in its path
+MONGODB_DB=blog          # overrides the database in the URI path; usually leave unset
 NEXT_PUBLIC_ANALYTICS_SITE_ID_PRODUCTION=   # analytics tenant; unset = no tracking (§8)
 NEXT_PUBLIC_ANALYTICS_SITE_ID_DEVELOPMENT=
 LINKEDIN_CLIENT_ID=      # LinkedIn cross-posting (npm run cli linkedin:auth)
@@ -114,6 +114,20 @@ net:
 
 No migration step is needed: indexes (unique slug, status+date, tags, text search, unique
 user email) are created on first connect.
+
+**Which database you are actually on** is worth checking before believing anything else,
+because two settings decide it and neither is obvious from reading the connection string:
+`MONGODB_DB` overrides the database named in the URI path, and a URI with *no* path
+resolves to `test`. `npm run status` prints the resolved answer:
+
+```
+  server      127.0.0.1:27017
+  database    blog
+  admins      1
+```
+
+If a restored dump looks empty, or an account you know exists cannot sign in, compare
+that line between the two environments first.
 
 ---
 

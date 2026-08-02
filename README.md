@@ -213,7 +213,8 @@ npm run typecheck
 npm test
 
 npm run create-admin -- --email … --password …
-npm run status           # what's in the database, and whether MCP is on
+npm run cli set-password -- --email … --password …   # reset a forgotten password
+npm run status           # which database, what's in it, and whether MCP is on
 npm run import-markdown  # migrate old Markdown posts
 npm run mcp              # MCP over stdio
 npm run cli linkedin:auth
@@ -225,12 +226,13 @@ npm run cli linkedin:auth
 npm test
 ```
 
-95 tests covering the MCP tool surface (including that publishing and deletion are absent
+102 tests covering the MCP tool surface (including that publishing and deletion are absent
 unless enabled), search matching and regex escaping, session signing and tampering, slug
 generation, Markdown front-matter round-tripping, the typewriter empty state (timing,
 reduced-motion fallback, screen-reader text, timer cleanup on unmount), and analytics
 (tenant selection, admin exclusion, one visit per navigation with none lost while the SDK
-is still loading).
+is still loading), and connection resolution (which database a URI actually lands in, with
+credentials never printed).
 
 They make no network calls and need no database — the store layer sits behind an interface
 with an in-memory implementation that mirrors the MongoDB one's behaviour. Component tests
