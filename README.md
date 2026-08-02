@@ -160,22 +160,24 @@ npm run mcp
 
 ## Analytics
 
-Visits are reported to an external analytics platform, which is **off unless you point it
-at a host**:
+Visits are reported to `https://analytics.consoleapi.in`, a multi-tenant platform. The
+host is fixed in `src/analytics/config.ts`; the tenant ("site") ID is deployment-specific
+and comes from the environment, never from a file in this repo:
 
 ```bash
-NEXT_PUBLIC_ANALYTICS_HOST=https://analytics.example.com
+NEXT_PUBLIC_ANALYTICS_SITE_ID_PRODUCTION=<uuid from the analytics dashboard>
+NEXT_PUBLIC_ANALYTICS_SITE_ID_DEVELOPMENT=<uuid from the analytics dashboard>
 ```
 
-With it unset — the default for local development — the SDK is never loaded and no beacon
-is sent. The platform is multi-tenant, and the two tenant IDs for this blog live in
-`src/analytics/config.ts`: a production build reports under the production tenant, every
-other build under the development one, so local experiments don't land in the real
-numbers. `NEXT_PUBLIC_ANALYTICS_SITE_ID` overrides the choice if you need a third
-environment.
+`NODE_ENV` picks between them, so a production build reports under the production tenant
+and `npm run dev` under the development one — one `.env` can hold both without local page
+loads landing in the real numbers. `NEXT_PUBLIC_ANALYTICS_SITE_ID` sets a single tenant
+and overrides the pair, for staging or a machine that only ever builds one environment.
 
-Being a `NEXT_PUBLIC_*` value, the host is baked into the browser bundle at build time —
-changing it means rebuilding, not just restarting.
+**With no tenant set, nothing is tracked at all** — the SDK isn't even loaded, so a fresh
+clone is silent until it's configured on purpose. Being `NEXT_PUBLIC_*` values, these are
+baked into the browser bundle at build time: changing one means rebuilding, not just
+restarting.
 
 Two decisions worth knowing about: the SDK's own auto-tracking is switched off and visits
 are reported from the Next router instead (the SDK hooks `history.pushState`, which the
@@ -218,7 +220,7 @@ npm run cli linkedin:auth
 npm test
 ```
 
-94 tests covering the MCP tool surface (including that publishing and deletion are absent
+95 tests covering the MCP tool surface (including that publishing and deletion are absent
 unless enabled), search matching and regex escaping, session signing and tampering, slug
 generation, Markdown front-matter round-tripping, the typewriter empty state (timing,
 reduced-motion fallback, screen-reader text, timer cleanup on unmount), and analytics

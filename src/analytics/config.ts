@@ -1,20 +1,18 @@
 /**
  * Configuration for the external analytics platform.
  *
- * The platform is multi-tenant: every deployment reports under a tenant UUID
- * ("site ID"), and the numbers are only meaningful if the production site and a
- * developer's laptop report under different ones. So the tenant is picked from
- * the build environment rather than hard-wired to a single value.
+ * The host is fixed — there is one analytics server and it is not going to
+ * move. The tenant ("site ID") is not: it is deployment-specific, so it comes
+ * from the environment and is deliberately absent from this file. Production
+ * and development report under different tenants, and burying either UUID in
+ * source would mean a code change to move a deployment between them.
  */
 
-/** Tenant UUIDs issued by the analytics platform for this blog. */
-export const SITE_IDS = {
-  production: 'cd6dae88-d6b4-4f4a-9624-4fa263b66438',
-  development: '237c8104-412c-4f8b-a506-a50965c796df',
-} as const;
+/** The analytics server. Overridable, but there is only one in practice. */
+export const DEFAULT_ANALYTICS_HOST = 'https://analytics.consoleapi.in';
 
 export type AnalyticsConfig = {
-  /** Origin of the analytics server, e.g. https://analytics.example.com */
+  /** Origin of the analytics server. */
   host: string;
   /** Tenant UUID this deployment reports under. */
   siteId: string;
@@ -27,26 +25,46 @@ export type AnalyticsConfig = {
 export type AnalyticsEnv = {
   host?: string;
   siteId?: string;
+  productionSiteId?: string;
+  developmentSiteId?: string;
   nodeEnv?: string;
 };
+
+function clean(value: string | undefined): string {
+  return value?.trim() ?? '';
+}
+
+/**
+ * Pick the tenant this build reports under.
+ *
+ * `NEXT_PUBLIC_ANALYTICS_SITE_ID` is the single-value form: set it and that is
+ * the tenant, whatever the environment. The `_PRODUCTION` / `_DEVELOPMENT` pair
+ * exists so one `.env` can hold both UUIDs and still be safe — a production
+ * build reports production, `npm run dev` reports development, with no risk of
+ * local page loads landing in the real numbers because someone forgot to swap a
+ * value.
+ */
+function pickSiteId(env: AnalyticsEnv): string {
+  const explicit = clean(env.siteId);
+  if (explicit) return explicit;
+
+  return env.nodeEnv === 'production'
+    ? clean(env.productionSiteId)
+    : clean(env.developmentSiteId);
+}
 
 /**
  * Resolve the analytics configuration, or `null` when tracking should be off.
  *
- * The host has no sensible default — pointing beacons at a guessed origin would
- * either leak reader paths to a stranger's server or silently fail — so an
- * unset `NEXT_PUBLIC_ANALYTICS_HOST` disables analytics entirely. That also
- * gives contributors a working local setup with no beacons by default.
+ * No tenant means no tracking. There is nothing sensible to fall back to — a
+ * guessed UUID would either be rejected or, worse, pollute someone else's
+ * tenant — and it keeps a fresh clone silent until it is configured on purpose.
  */
 export function resolveAnalytics(env: AnalyticsEnv): AnalyticsConfig | null {
-  const host = env.host?.trim().replace(/\/+$/, '');
-  if (!host) return null;
+  const siteId = pickSiteId(env);
+  if (!siteId) return null;
 
-  // An explicit override wins: a staging deployment can report under its own
-  // tenant without needing a new branch in this function.
-  const siteId =
-    env.siteId?.trim() ||
-    (env.nodeEnv === 'production' ? SITE_IDS.production : SITE_IDS.development);
+  const host = (clean(env.host) || DEFAULT_ANALYTICS_HOST).replace(/\/+$/, '');
 
   return {
     host,
@@ -76,5 +94,7 @@ export function isTrackablePath(pathname: string): boolean {
 export const analyticsEnv: AnalyticsEnv = {
   host: process.env.NEXT_PUBLIC_ANALYTICS_HOST,
   siteId: process.env.NEXT_PUBLIC_ANALYTICS_SITE_ID,
+  productionSiteId: process.env.NEXT_PUBLIC_ANALYTICS_SITE_ID_PRODUCTION,
+  developmentSiteId: process.env.NEXT_PUBLIC_ANALYTICS_SITE_ID_DEVELOPMENT,
   nodeEnv: process.env.NODE_ENV,
 };

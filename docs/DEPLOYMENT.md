@@ -38,8 +38,8 @@ SITE_URL=https://blog.gokulakannan.dev   # canonical links + the MCP endpoint sh
 
 # ---- optional ----
 MONGODB_DB=blog          # only if the URI has no database in its path
-NEXT_PUBLIC_ANALYTICS_HOST=https://analytics.example.com   # unset = no tracking at all
-NEXT_PUBLIC_ANALYTICS_SITE_ID=   # override the tenant; normally leave blank
+NEXT_PUBLIC_ANALYTICS_SITE_ID_PRODUCTION=   # analytics tenant; unset = no tracking (§8)
+NEXT_PUBLIC_ANALYTICS_SITE_ID_DEVELOPMENT=
 LINKEDIN_CLIENT_ID=      # LinkedIn cross-posting (npm run cli linkedin:auth)
 LINKEDIN_CLIENT_SECRET=
 LINKEDIN_ACCESS_TOKEN=
@@ -242,22 +242,24 @@ npm run import-markdown           # reads content/posts/, skips anything already
 
 ## 8. Analytics
 
-Page visits are reported to an external multi-tenant analytics platform. Two tenant
-UUIDs are registered for this blog and both live in `src/analytics/config.ts`:
-
-| Environment | Tenant ID |
-| :--- | :--- |
-| production | `cd6dae88-d6b4-4f4a-9624-4fa263b66438` |
-| development | `237c8104-412c-4f8b-a506-a50965c796df` |
-
-The tenant is chosen by `NODE_ENV` at build time, so a production build reports under
-the production tenant and everything else lands in the development one. Nothing is sent
-unless `NEXT_PUBLIC_ANALYTICS_HOST` is set — with it unset the SDK is never loaded, so
-local development is silent by default.
+Page visits are reported to `https://analytics.consoleapi.in`, a multi-tenant platform.
+The host is fixed in `src/analytics/config.ts`; the tenant ("site") ID is not — it is a
+per-deployment value and lives only in the environment. Get the two UUIDs from the
+analytics dashboard and put them in the build environment:
 
 ```bash
-NEXT_PUBLIC_ANALYTICS_HOST=https://analytics.example.com   # your analytics server origin
+NEXT_PUBLIC_ANALYTICS_SITE_ID_PRODUCTION=<uuid from the dashboard>
+NEXT_PUBLIC_ANALYTICS_SITE_ID_DEVELOPMENT=<uuid from the dashboard>
 ```
+
+`NODE_ENV` picks between them at build time, so a production build reports under the
+production tenant and `npm run dev` under the development one — one file can safely hold
+both. If you would rather set a single value, `NEXT_PUBLIC_ANALYTICS_SITE_ID` overrides
+the pair; that is also how a staging deployment gets its own tenant.
+
+**Nothing is sent until a tenant is set.** With none configured the SDK is never loaded,
+so a fresh clone is silent by default. `NEXT_PUBLIC_ANALYTICS_HOST` overrides the server
+origin if you ever need to point somewhere else.
 
 Two deliberate choices in the integration:
 
@@ -269,9 +271,11 @@ Two deliberate choices in the integration:
   carry post IDs; tracking them would inflate the numbers and push internal identifiers
   into a third-party dataset.
 
-Verify after deploying: load the site in a browser, and confirm a `POST` to
-`/api/analytics/visit` on your analytics host in the Network tab. A 200 with
-`{"success": true}` means the tenant is receiving data.
+Verify after deploying: load the site in a browser and look for a `POST` to
+`https://analytics.consoleapi.in/api/analytics/visit` in the Network tab. A 200 with
+`{"success": true}` means the tenant is receiving data. Check `data-site-id` on the
+injected script tag if the visits land under the wrong tenant — remember that these are
+build-time values, so a stale one means the last build had a stale environment.
 
 ---
 
