@@ -11,6 +11,14 @@ const extensionAlias = {
 };
 
 const nextConfig: NextConfig = {
+  // Emit a self-contained server with only the modules actually reached, which
+  // is what `scripts/after_prepare.mjs` packages into `release/`. It is two
+  // orders of magnitude smaller than shipping `node_modules` wholesale.
+  //
+  // Note this is why `npm start` runs `release/server.js` rather than
+  // `next start`: Next refuses to run `next start` against a standalone build.
+  output: 'standalone',
+
   // The Mongo driver and bcrypt are server-only; keep them out of client bundles.
   serverExternalPackages: ['mongodb', 'bcryptjs'],
 

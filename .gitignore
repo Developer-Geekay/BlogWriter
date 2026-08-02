@@ -7,6 +7,9 @@ dist/
 .next/
 next-env.d.ts
 
+# Deployment artifact assembled by scripts/after_prepare.mjs
+release/
+
 # Secrets — never commit these
 .env
 .env.local

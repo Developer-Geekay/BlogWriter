@@ -50,6 +50,11 @@ Deploying to a server? See **[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)** — it c
 this as a long-running Node process behind nginx, with systemd, TLS, and the proxy
 settings the MCP endpoint needs.
 
+`npm run build` ends by packaging everything the server needs into `release/` — entry
+point, pruned `node_modules`, compiled app, static assets. Ship that directory and run
+`node server.js` inside it; nothing is installed on the target. It's 83 MB against 717 MB
+for a full `node_modules`.
+
 Coming from the old file-based CLI? Import your Markdown posts once:
 
 ```bash
@@ -202,8 +207,8 @@ Put the site behind TLS before exposing it publicly; the MCP token travels as a 
 
 ```bash
 npm run dev              # development server
-npm run build            # production build
-npm run start            # serve the production build
+npm run build            # production build, then packages release/
+npm run start            # serve release/ (node release/server.js)
 npm run typecheck
 npm test
 

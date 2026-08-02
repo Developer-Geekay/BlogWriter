@@ -65,9 +65,13 @@ which is also how you force a logout if a laptop goes missing.
 ```bash
 git clone <repo> /srv/blog && cd /srv/blog
 npm ci                 # full install — see the warning below
-npm run build
-npm start              # next start, listens on $PORT (default 3000)
+npm run build          # builds, then packages release/ (see §9)
+npm start              # node release/server.js, listens on $PORT (default 3000)
 ```
+
+`npm run build` finishes by running `scripts/after_prepare.mjs`, which assembles a
+self-contained `release/` directory — that is what `npm start` serves and what you ship
+to a server. §9 covers the artifact itself.
 
 > ### Do not run `npm ci --omit=dev`
 >
@@ -80,8 +84,9 @@ npm start              # next start, listens on $PORT (default 3000)
 >    `import-markdown` all run through it, so pruning leaves you unable to create an
 >    admin account on the box.
 >
-> Either keep the full install, or use the standalone build in §9, which produces a
-> slim runtime bundle without pruning your working tree.
+> This applies to the machine that *builds*. The `release/` package it produces has
+> neither problem — its dependencies are already pruned to what the server actually
+> reaches, so nothing is installed on the deployment target at all.
 
 Sanity-check the build before wiring up a service:
 
@@ -125,11 +130,11 @@ Wants=network-online.target
 [Service]
 Type=simple
 User=blog
-WorkingDirectory=/srv/blog
+WorkingDirectory=/srv/blog/release
 EnvironmentFile=/srv/blog/.env
 Environment=NODE_ENV=production
 Environment=PORT=3000
-ExecStart=/usr/bin/npm start
+ExecStart=/usr/bin/node /srv/blog/release/server.js
 Restart=always
 RestartSec=5
 
@@ -138,7 +143,7 @@ NoNewPrivileges=true
 PrivateTmp=true
 ProtectSystem=strict
 ProtectHome=true
-ReadWritePaths=/srv/blog/.next
+ReadWritePaths=/srv/blog/release/.next
 
 [Install]
 WantedBy=multi-user.target
@@ -157,7 +162,7 @@ sudo journalctl -u blog -f
 
 ```bash
 npm i -g pm2
-pm2 start npm --name blog -- start
+pm2 start release/server.js --name blog
 pm2 save && pm2 startup
 ```
 
@@ -279,42 +284,54 @@ build-time values, so a stale one means the last build had a stale environment.
 
 ---
 
-## 9. Optional: standalone build (smaller runtime)
+## 9. The release package
 
-Next can emit a self-contained server with only the modules it actually needs — **79 MB
-against 717 MB** for a full `node_modules` here. Worth it if you build elsewhere and ship
-an artifact.
+`npm run build` ends by running `scripts/after_prepare.mjs`, which assembles everything
+the server needs into `release/`:
 
-Add to `next.config.ts`:
-
-```ts
-const nextConfig: NextConfig = {
-  output: 'standalone',
-  // ...existing config
-};
+```
+release/
+├── server.js          # the entry point — honours PORT
+├── node_modules/      # pruned to the modules the server actually reaches
+├── .next/             # compiled app + static assets
+├── public/            # if the directory exists
+├── package.json       # rewritten: start = node server.js
+└── HOW-TO-RUN.md
 ```
 
-Then:
+**83 MB against 717 MB** for a full `node_modules` here, and nothing is installed on the
+deployment target. Ship the directory and run it:
 
 ```bash
-npm run build
-cp -r .next/static .next/standalone/.next/static
-cp -r public       .next/standalone/public        # if the directory exists
-node .next/standalone/server.js                   # honours PORT
+rsync -a release/ deploy@server:/srv/blog/release/
+ssh deploy@server 'cd /srv/blog/release && PORT=3000 node server.js'
 ```
 
-The two `cp` lines are required — Next deliberately leaves static assets out of the
-standalone directory, and without them the site renders unstyled.
+Next's standalone output does the pruning by tracing the modules reachable from the
+server entry, so build-only packages (typescript, tailwind, vitest, tsx) never reach the
+artifact. The script handles the parts Next leaves undone:
 
-> **`npm start` stops being supported once you enable this.** Next prints
-> *"next start does not work with output: standalone"*. Change `ExecStart` in the systemd
-> unit to `/usr/bin/node /srv/blog/.next/standalone/server.js`.
->
-> The CLI commands (`create-admin`, `status`) still need the full install, since they run
-> through `tsx`. Run them from a checkout that has devDependencies.
+- **Static assets are copied in.** Next deliberately omits `.next/static` and `public`
+  from the standalone directory. Without them the site serves 200s and renders unstyled,
+  which is a confusing failure to debug.
+- **The manifest is rewritten.** Next copies this repository's `package.json` verbatim,
+  where `npm start` means `next start` — which refuses to serve a standalone build — and
+  the dependency lists invite an `npm ci` that would delete the pruned `node_modules`.
+  Both are stripped; `release/package.json` has one script, `start: node server.js`.
+- **The analytics tenant is reported.** `NEXT_PUBLIC_*` values are inlined at build time,
+  so the script prints which tenant the artifact carries. That is the last cheap moment
+  to notice a release built with analytics off or against the wrong tenant.
 
-This is why standalone is **not** enabled by default: the simpler `npm start` path stays
-the supported one.
+Two things do not travel with the package:
+
+- **The admin CLI.** `create-admin`, `status`, and `import-markdown` run through `tsx`,
+  which is a build dependency. They only talk to MongoDB, so run them from the build
+  machine or any checkout pointed at the same `MONGODB_URI` — there is no need for them
+  to exist on the server.
+- **`NEXT_PUBLIC_*` changes.** They are baked in. Changing the analytics tenant means
+  rebuilding and re-shipping, not editing `.env` on the server.
+
+`release/` is gitignored — it is a build artifact, rebuilt on every `npm run build`.
 
 ---
 
@@ -324,9 +341,19 @@ the supported one.
 cd /srv/blog
 git pull
 npm ci
-npm run build
+npm run build            # rebuilds release/ from scratch
 sudo systemctl restart blog
 ```
+
+If you build elsewhere, only `release/` needs to travel:
+
+```bash
+rsync -a --delete release/ deploy@server:/srv/blog/release/
+ssh deploy@server 'sudo systemctl restart blog'
+```
+
+`--delete` matters: `release/` is rebuilt from scratch each time, and without it files
+removed in this version linger on the server.
 
 There is a visible gap between `npm run build` and the restart. To avoid it, build into a
 fresh directory and swap a symlink:
@@ -373,5 +400,7 @@ mongorestore --uri="$MONGODB_URI" --drop /backup/blog-2026-08-01/blog
 | MCP client gets 503 | The toggle is off, which is its normal resting state. Enable it in Settings. |
 | MCP client gets 401 | Wrong or rotated bearer token. |
 | `/api/*` returns 503 "Storage is unavailable" | Same cause as the page-level notice — the database is unreachable. |
-| `npm run create-admin` → "tsx: not found" | devDependencies were pruned; see §3. |
+| `npm run create-admin` → "tsx: not found" | devDependencies were pruned, or you ran it inside `release/`. The CLI runs from a full checkout; see §9. |
+| Site serves 200 but renders unstyled | `release/.next/static` is missing — an incomplete copy of the artifact. Re-run `npm run build`, or re-sync the whole directory. |
+| `after_prepare.mjs`: ".next/standalone not found" | `next.config.ts` lost `output: 'standalone'`, or the build failed before it emitted. |
 | Build fails on `tailwindcss` / `typescript` | Same cause — those are devDependencies. |
