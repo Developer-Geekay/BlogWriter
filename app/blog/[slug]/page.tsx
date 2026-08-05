@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { PostStore } from '@/src/db/posts';
+import { currentSession } from '@/src/auth/guard';
 import { Markdown } from '@/components/Markdown';
 import { formatDate } from '@/components/PostCard';
 import { DatabaseErrorNotice, asDatabaseError } from '@/components/DatabaseErrorNotice';
@@ -40,6 +41,11 @@ export default async function PostPage({ params }: Props) {
   // A draft has no public URL — treat it as missing rather than leaking it.
   if (!post || post.status !== 'published') notFound();
 
+  // Only the author sees this, and only while signed in. Spotting a typo while
+  // reading your own published post should not mean navigating to the portal,
+  // finding the post in a list, and opening it.
+  const session = await currentSession();
+
   return (
     <article className="mx-auto max-w-3xl px-5 py-12">
       <h1 className="text-4xl font-bold leading-tight tracking-tight sm:text-5xl">{post.title}</h1>
@@ -52,6 +58,15 @@ export default async function PostPage({ params }: Props) {
         <time dateTime={post.publishedAt ?? undefined}>{formatDate(post.publishedAt)}</time>
         <span aria-hidden>·</span>
         <span>{post.readingTime} min read</span>
+
+        {session ? (
+          <Link
+            href={`/admin/posts/${post.id}/edit`}
+            className="ml-auto rounded-full border border-[var(--color-rule)] px-3 py-1 font-medium text-[var(--color-ink)] hover:border-[var(--color-accent)] hover:text-[var(--color-accent)]"
+          >
+            Edit post
+          </Link>
+        ) : null}
       </div>
 
       {post.coverImage ? (

@@ -1,7 +1,9 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { Markdown } from '@/components/Markdown';
 import type { Post, PostStatus } from '@/src/db/types';
 
 interface Props {
@@ -19,6 +21,12 @@ export function PostEditor({ post }: Props) {
   const [slug, setSlug] = useState(post?.slug ?? '');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+
+  // A draft has no public URL — /blog/[slug] 404s until it is published — so
+  // this is the only way to see how a post actually reads before committing to
+  // it. Rendered with the same component and prose styles as the live page, so
+  // what you check here is what ships.
+  const [preview, setPreview] = useState(false);
 
   const words = body.split(/\s+/).filter(Boolean).length;
 
@@ -106,14 +114,63 @@ export function PostEditor({ post }: Props) {
           className="mt-4 w-full resize-y border-none bg-transparent text-lg text-[var(--color-muted)] outline-none"
         />
 
-        <textarea
-          aria-label="Body"
-          placeholder="Write in Markdown…"
-          value={body}
-          onChange={(e) => setBody(e.target.value)}
-          rows={26}
-          className="article-body mt-6 w-full resize-y rounded border border-[var(--color-rule)] bg-transparent p-4 outline-none"
-        />
+        <div className="mt-6 flex items-center gap-1 border-b border-[var(--color-rule)]">
+          {(['write', 'preview'] as const).map((mode) => {
+            const active = (mode === 'preview') === preview;
+            return (
+              <button
+                key={mode}
+                type="button"
+                onClick={() => setPreview(mode === 'preview')}
+                aria-pressed={active}
+                className={`-mb-px border-b-2 px-3 py-2 text-sm font-medium capitalize ${
+                  active
+                    ? 'border-[var(--color-accent)] text-[var(--color-accent)]'
+                    : 'border-transparent text-[var(--color-muted)] hover:text-[var(--color-ink)]'
+                }`}
+              >
+                {mode}
+              </button>
+            );
+          })}
+
+          {post?.status === 'published' ? (
+            <Link
+              href={`/blog/${post.slug}`}
+              target="_blank"
+              className="ml-auto py-2 text-sm text-[var(--color-muted)] hover:text-[var(--color-accent)]"
+            >
+              View live ↗
+            </Link>
+          ) : null}
+        </div>
+
+        {preview ? (
+          <div className="mt-4 min-h-[24rem] rounded border border-[var(--color-rule)] p-4">
+            {coverImage.trim() ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={coverImage.trim()}
+                alt=""
+                className="mb-6 w-full rounded-lg object-cover"
+              />
+            ) : null}
+            {body.trim() ? (
+              <Markdown>{body}</Markdown>
+            ) : (
+              <p className="text-[var(--color-muted)]">Nothing to preview yet.</p>
+            )}
+          </div>
+        ) : (
+          <textarea
+            aria-label="Body"
+            placeholder="Write in Markdown…"
+            value={body}
+            onChange={(e) => setBody(e.target.value)}
+            rows={26}
+            className="article-body mt-4 w-full resize-y rounded border border-[var(--color-rule)] bg-transparent p-4 outline-none"
+          />
+        )}
 
         <p className="mt-2 text-sm text-[var(--color-muted)]">
           {words} words · about {Math.max(1, Math.round(words / 200))} min read · Markdown
