@@ -28,7 +28,7 @@ vi.mock('next/script', () => ({
   },
 }));
 
-const { AnalyticsTracker } = await import('../components/Analytics.js');
+const { AnalyticsTracker, AnalyticsGate } = await import('../components/Analytics.js');
 
 const config = {
   host: 'https://analytics.example.com',
@@ -106,17 +106,41 @@ describe('AnalyticsTracker', () => {
     expect(trackVisit).toHaveBeenLastCalledWith('/search?q=mongo+db');
   });
 
-  it('does not report admin pages', () => {
+  it('reports nothing and loads no script on admin pages', () => {
     loadSdk();
     currentPath = '/admin/posts/abc/edit';
-    const { rerender } = render(<AnalyticsTracker config={config} />);
-    ready();
+    const { rerender } = render(<AnalyticsGate config={config} />);
+
+    // The third-party script is not even requested inside the portal: it
+    // replaces the document body with an overlay when the platform blocks a
+    // visitor, which must never be able to happen to the tool running the site.
+    expect(scriptProps.src).toBeUndefined();
     expect(trackVisit).not.toHaveBeenCalled();
 
-    // And leaving the portal reports the public page, not the admin one.
+    // Leaving the portal loads it and reports the public page, not the admin one.
     currentPath = '/blog/hello';
-    rerender(<AnalyticsTracker config={config} />);
+    rerender(<AnalyticsGate config={config} />);
+    ready();
+    expect(scriptProps.src).toBe(config.scriptUrl);
     expect(trackVisit).toHaveBeenCalledExactlyOnceWith('/blog/hello');
+  });
+
+  it('says so when the SDK has no programmatic API instead of throwing', () => {
+    // The platform's current guide documents only the script tag, so a build
+    // without init/trackVisit is a live possibility rather than a hypothetical.
+    window.AnalyticsSDK = {};
+    const logged: string[] = [];
+    const error = console.error;
+    console.error = (message: string) => logged.push(message);
+    try {
+      expect(() => {
+        render(<AnalyticsTracker config={config} />);
+        ready();
+      }).not.toThrow();
+    } finally {
+      console.error = error;
+    }
+    expect(logged.join('\n')).toMatch(/trackVisit/);
   });
 
   it('survives a ready callback that fires with nothing queued', () => {

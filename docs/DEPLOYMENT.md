@@ -285,10 +285,36 @@ Two deliberate choices in the integration:
 - **Auto-tracking is off** (`data-auto-track="false"`). The SDK patches
   `history.pushState`, which the Next.js router also drives, so leaving it on
   double-counts every client-side navigation. Visits are reported once, from the
-  router, in `components/Analytics.tsx`.
-- **`/admin` is excluded.** Those URLs are one person editing their own site and they
-  carry post IDs; tracking them would inflate the numbers and push internal identifiers
-  into a third-party dataset.
+  router, in `components/Analytics.tsx`. This is a deviation from ConsoleAPI's
+  documented standard, which is the bare script tag with auto-tracking on — taken
+  because that standard cannot exclude a route.
+- **`/admin` loads no analytics at all.** Not just "sends no beacon": the script tag
+  is not rendered inside the portal. Two reasons. Those URLs are one person editing
+  their own site and they carry post IDs, so tracking them would inflate the numbers
+  and push internal identifiers into a third-party dataset. And `analytics.js`
+  replaces `document.body.innerHTML` with a blocking overlay when the platform
+  decides a visitor's IP is a threat — the tool used to run the site is the last
+  place that should be possible.
+
+### What the SDK does that a plain POST would not
+
+Beacons carry an `X-Beacon-Signature` header: a nonce, a five-minute time window, and
+a digest over the tenant and a salt. The server recomputes it and flags anything that
+does not match as `SDK Signature Forgery`, which can auto-block the source IP. That is
+why beacons go through `analytics.js` rather than a `fetch` of our own — hand-rolled
+requests would be unsigned, and therefore indistinguishable from a scraper.
+
+It also means **do not proxy beacons through this app's server**. A relay would have
+to recompute that signature, and every visit would arrive from the server's IP unless
+`X-Forwarded-For` were threaded through correctly. The browser SDK is the supported
+path.
+
+> **A blocked reader sees an overlay, not your post.** If ConsoleAPI's threat engine
+> flags a visitor's IP, `analytics.js` blanks the page it is on and shows an Access
+> Restricted panel with an unblock address. This applies to real readers on real posts,
+> so a false positive is a reader who cannot read the site. Nothing in this app can
+> intercept that — the decision and the overlay both belong to the SDK. If that
+> tradeoff is not one you want, unset the tenant variables and no SDK is loaded.
 
 Verify after deploying: load the site in a browser and look for a `POST` to
 `https://analytics.consoleapi.in/api/analytics/visit` in the Network tab. A 200 with

@@ -184,10 +184,24 @@ clone is silent until it's configured on purpose. Being `NEXT_PUBLIC_*` values, 
 baked into the browser bundle at build time: changing one means rebuilding, not just
 restarting.
 
-Two decisions worth knowing about: the SDK's own auto-tracking is switched off and visits
-are reported from the Next router instead (the SDK hooks `history.pushState`, which the
-router also drives, so leaving both on double-counts every navigation), and `/admin` is
-never tracked — it's one person editing their own site, and those URLs carry post IDs.
+Two decisions worth knowing about. The SDK's own auto-tracking is switched off and visits
+are reported from the Next router instead — the SDK hooks `history.pushState`, which the
+router also drives, so leaving both on double-counts every navigation. And `/admin` loads
+no analytics at all: not just "sends no beacon", the script tag isn't rendered there.
+Those URLs are one person editing their own site and they carry post IDs, and separately,
+`analytics.js` replaces the document body with a blocking overlay when the platform
+decides a visitor's IP is a threat — the tool used to run the site is the last place that
+should be possible.
+
+That overlay is worth understanding before switching tracking on: it applies to real
+readers on real posts, so a false positive from the threat engine is a reader who cannot
+read the site. Nothing here can intercept it; the decision and the overlay both belong to
+the SDK.
+
+Beacons are signed — `X-Beacon-Signature`, a nonce and time window digested with the
+tenant — and the platform flags unsigned requests as forgery, which can auto-block the
+source IP. That's why tracking goes through `analytics.js` rather than a `fetch` of our
+own, and why beacons should not be proxied through this app's server.
 
 ## Security notes
 
