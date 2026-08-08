@@ -34,3 +34,4 @@ Thumbs.db
 # NOTE: package-lock.json is deliberately NOT ignored. CI installs with
 # `npm ci`, which requires a committed lockfile for reproducible builds.
 notes.md
+HANDOFF.md
