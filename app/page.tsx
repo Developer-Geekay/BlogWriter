@@ -10,29 +10,23 @@ import { entryNumber } from '@/src/db/types';
 // Posts change when the author publishes, so never serve a cached shell.
 export const dynamic = 'force-dynamic';
 
-type Props = { searchParams: Promise<{ topic?: string }> };
-
-export default async function HomePage({ searchParams }: Props) {
-  const topic = (await searchParams).topic?.trim() ?? '';
-
+export default async function HomePage() {
   let posts;
-  let tags;
   let author = '';
 
   try {
     const store = await PostStore.open();
-    [posts, tags, author] = await Promise.all([
-      store.list({ status: 'published', limit: 50, ...(topic ? { tag: topic } : {}) }),
-      store.tags(),
+    [posts, author] = await Promise.all([
+      store.list({ status: 'published', limit: 50 }),
       (await SettingsStore.open()).get().then((s) => s.siteAuthor),
     ]);
   } catch (err) {
     return <DatabaseErrorNotice error={asDatabaseError(err)} />;
   }
 
-  // Nothing published at all — not merely nothing under this filter — gives the
-  // page over to a thought instead of rendering an empty feed and empty rail.
-  if (posts.length === 0 && !topic) {
+  // Nothing published gives the page over to a thought instead of rendering an
+  // empty feed.
+  if (posts.length === 0) {
     const session = await currentSession();
     return (
       <div className="mx-auto max-w-[1160px] px-4 py-24">
@@ -74,37 +68,19 @@ export default async function HomePage({ searchParams }: Props) {
         </p>
       </section>
 
-      {tags.length > 0 ? (
-        <section className="flex flex-wrap items-center gap-2 border-b-2 border-[var(--soft)] py-3.5">
-          <span className="mr-1 font-[family-name:var(--mono)] text-[10px] uppercase tracking-[0.12em] text-[var(--muted)]">
-            Filter
-          </span>
-          <Chip href="/" label="All" active={!topic} />
-          {tags.map(({ tag }) => (
-            <Chip
-              key={tag}
-              href={`/?topic=${encodeURIComponent(tag)}`}
-              label={tag}
-              active={topic === tag}
-            />
-          ))}
-        </section>
-      ) : null}
+      {/*
+        No filter row here.
 
+        It listed every tag in use, which is fine with three and unusable with
+        thirty — in production it wrapped to two full rows above the first entry
+        and pushed the writing off the screen. Filtering by topic still exists,
+        on /topics and the individual /tag pages, where a long list has room to
+        be laid out properly.
+      */}
       <section>
-        {posts.length === 0 ? (
-          <p className="py-16 text-[var(--muted)]">
-            Nothing filed under “{topic}” yet.{' '}
-            <Link href="/" className="text-[var(--accent-text)] underline">
-              See everything
-            </Link>
-            .
-          </p>
-        ) : (
-          posts.map((post, index) => (
-            <PostCard key={post.id} post={post} number={entryNumber(index, posts.length)} />
-          ))
-        )}
+        {posts.map((post, index) => (
+          <PostCard key={post.id} post={post} number={entryNumber(index, posts.length)} />
+        ))}
       </section>
 
       {growing ? (
@@ -133,28 +109,3 @@ export default async function HomePage({ searchParams }: Props) {
   );
 }
 
-/*
- * The selected filter is a solid accent fill, not the pale `tag-accent` tint.
- *
- * The tint is a 100-step wash — against the neutral chips beside it the
- * difference is a few percent of pink, which does not read as "this one is on",
- * especially when a site has few enough entries that filtering changes little
- * on screen. The design system already uses a solid accent for a *chosen*
- * option (`.seg-opt:has(input:checked)`), so this borrows that rather than
- * inventing a state.
- */
-function Chip({ href, label, active }: { href: string; label: string; active: boolean }) {
-  return (
-    <Link
-      href={href}
-      aria-current={active ? 'true' : undefined}
-      className={`tag font-[family-name:var(--mono)] text-[10px] uppercase tracking-[0.1em] no-underline ${
-        active
-          ? 'bg-[var(--accent)] text-[var(--ground)]'
-          : 'tag-neutral hover:bg-[var(--color-neutral-300)]'
-      }`}
-    >
-      {label}
-    </Link>
-  );
-}

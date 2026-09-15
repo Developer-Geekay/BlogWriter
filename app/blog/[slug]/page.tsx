@@ -158,7 +158,11 @@ export default async function PostPage({ params }: Props) {
           ) : null}
         </aside>
 
-        <article className="min-w-0 max-w-[72ch] border-l-2 border-[var(--soft)] pl-7 pt-6 [flex:3_1_440px]">
+        {/* No max-width on the measure: the page container already caps the row
+            at 1160px, so the article tops out around 800px on a desktop. A 72ch
+            cap on top of that stopped the text well short of the rule above it
+            and left a quarter of the row empty. */}
+        <article className="min-w-0 border-l-2 border-[var(--soft)] pl-7 pt-6 [flex:3_1_440px]">
           {post.coverImage ? (
             // A remote cover URL can be any host, so use a plain <img> rather
             // than next/image, which would need every domain allow-listed.

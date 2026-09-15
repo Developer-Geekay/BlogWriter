@@ -61,25 +61,13 @@ export function HeaderControls({ signedIn }: { signedIn: boolean }) {
         <ThemeToggle />
 
         {/*
-          Shown signed in or not — it is the only way into the portal from the
-          UI. Signed out it lands on /admin, which middleware sends to the login
-          page, so the control is honest about where it goes. This is a
-          deliberate change from the previous site, which had no entry point at
-          all and expected you to know to type /admin; the design puts the door
-          in the header.
+          No "admin" / "exit admin" button.
 
-          Hidden on the login page itself, where "Admin" would point at the page
-          you are already on and "Exit admin" would claim you are in a portal
-          you have not entered.
+          The portal is reached by typing /admin, and left by the wordmark,
+          which links home from every page including this one. A reader is never
+          shown a door they cannot open, and the author does not need a
+          signposted one.
         */}
-        {onLogin ? null : (
-          <Link
-            href={inAdmin ? '/' : '/admin'}
-            className="flex h-9 flex-none items-center bg-[var(--ink)] px-2.5 font-[family-name:var(--mono)] text-[11px] uppercase tracking-[0.1em] text-[var(--ground)] no-underline hover:opacity-90"
-          >
-            {inAdmin ? 'Exit admin' : 'Admin'}
-          </Link>
-        )}
 
         {/* Only in the portal. A reader is never shown a control for a session
             they are not thinking about, which is the same reason there is no

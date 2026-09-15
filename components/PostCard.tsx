@@ -26,7 +26,11 @@ export function PostCard({ post, number }: { post: Post; number?: string }) {
         href={`/blog/${post.slug}`}
         className="flex flex-wrap items-start gap-x-6 gap-y-2.5 py-5 no-underline hover:bg-[var(--panel)]"
       >
-        <div className="flex min-w-0 flex-wrap items-center gap-2 [flex:1_1_150px]">
+        {/* A fixed rail, not a growing column. With `flex-grow` it took a share
+            of every spare pixel, so on a wide screen the four short mono labels
+            sat against the left edge with a few hundred pixels of nothing
+            between them and the title. */}
+        <div className="flex min-w-0 flex-wrap items-center gap-2 [flex:0_1_200px]">
           {number ? (
             <span className="font-[family-name:var(--mono)] text-[11px] text-[var(--accent-text)]">
               {number}
@@ -40,12 +44,16 @@ export function PostCard({ post, number }: { post: Post; number?: string }) {
           </span>
         </div>
 
-        <div className="min-w-0 [flex:3_1_320px]">
-          <h2 className="mb-2 max-w-[32ch] text-[clamp(21px,3.4vw,30px)] font-extrabold leading-[1.1] tracking-[-0.025em] text-[var(--ink)]">
+        <div className="min-w-0 [flex:1_1_320px]">
+          {/* The title runs to the column edge. A 32ch cap made it wrap after
+              four or five words while the row had room to spare. */}
+          <h2 className="mb-2 text-[clamp(21px,3.4vw,30px)] font-extrabold leading-[1.1] tracking-[-0.025em] text-[var(--ink)]">
             {post.title}
           </h2>
           {post.excerpt ? (
-            <p className="mb-2 max-w-[60ch] text-[15px] text-[var(--muted)] [text-wrap:pretty]">
+            // The excerpt keeps a measure — it is body copy, and the column is
+            // wide enough now that an uncapped line would be hard to track.
+            <p className="mb-2 max-w-[78ch] text-[15px] text-[var(--muted)] [text-wrap:pretty]">
               {post.excerpt}
             </p>
           ) : null}
