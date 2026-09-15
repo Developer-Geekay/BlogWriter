@@ -9,9 +9,14 @@ import { DatabaseError } from '@/src/db/client';
  */
 export function DatabaseErrorNotice({ error }: { error: DatabaseError }) {
   return (
-    <div className="mx-auto max-w-2xl px-5 py-24">
-      <h1 className="text-2xl font-bold tracking-tight">The database is not reachable</h1>
-      <p className="mt-3 whitespace-pre-line text-[var(--color-muted)]">{error.message}</p>
+    <div className="mx-auto max-w-2xl px-4 py-24">
+      <p className="mb-3 font-[family-name:var(--mono)] text-[11px] uppercase tracking-[0.14em] text-[var(--accent-text)]">
+        Storage unavailable
+      </p>
+      <h1 className="mb-3 text-[clamp(28px,6vw,42px)] font-extrabold leading-[1.05] tracking-[-0.03em]">
+        The database is not reachable
+      </h1>
+      <p className="whitespace-pre-line text-[var(--muted)]">{error.message}</p>
     </div>
   );
 }

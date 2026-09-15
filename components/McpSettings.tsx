@@ -39,63 +39,64 @@ export function McpSettings({
   }
 
   return (
-    <section className="rounded border border-[var(--color-rule)] p-6">
-      <div className="flex items-start justify-between gap-6">
-        <div>
-          <h2 className="text-lg font-semibold">MCP endpoint</h2>
-          <p className="mt-1 max-w-xl text-sm text-[var(--color-muted)]">
-            Lets an external AI portal connect to this blog and draft posts. While it is off,
-            every request to the endpoint is refused — no token works, so you can disconnect
-            an integration instantly without rotating credentials.
-          </p>
-        </div>
+    <section className="border-b-2 border-[var(--soft)] px-4 py-5">
+      <p className="mb-3.5 font-[family-name:var(--mono)] text-[10px] uppercase tracking-[0.12em] text-[var(--muted)]">
+        MCP endpoint
+      </p>
 
-        <button
-          type="button"
-          role="switch"
-          aria-checked={settings.mcpEnabled}
-          aria-label="Enable MCP endpoint"
-          disabled={busy}
-          onClick={() => patch({ mcpEnabled: !settings.mcpEnabled })}
-          className={`relative h-7 w-12 flex-none rounded-full transition-colors disabled:opacity-50 ${
-            settings.mcpEnabled ? 'bg-[var(--color-accent)]' : 'bg-neutral-300 dark:bg-neutral-700'
-          }`}
-        >
-          <span
-            className={`absolute top-1 h-5 w-5 rounded-full bg-white transition-transform ${
-              settings.mcpEnabled ? 'translate-x-6' : 'translate-x-1'
-            }`}
-          />
-        </button>
-      </div>
+      <p className="mb-3.5 max-w-xl text-sm leading-relaxed text-[var(--muted)]">
+        Lets an external AI portal connect to this blog and draft posts. While it is off, every
+        request to the endpoint is refused — no token works, so you can disconnect an integration
+        instantly without rotating credentials.
+      </p>
+
+      {/* A switch as a row with an ON/OFF tag, not a sliding pill. A pill is a
+          rounded control in a system whose radius is zero everywhere; this is
+          the form the design uses for the same job. */}
+      <Toggle
+        label="Endpoint enabled"
+        on={settings.mcpEnabled}
+        busy={busy}
+        onClick={() => patch({ mcpEnabled: !settings.mcpEnabled })}
+      />
+
+      {settings.mcpEnabled ? (
+        <Toggle
+          label="Allow connected clients to publish and delete"
+          hint="Off by default. While off, a connected AI can only create and edit drafts — putting a post on the public site stays a human decision."
+          on={settings.mcpAllowPublish}
+          busy={busy}
+          onClick={() => patch({ mcpAllowPublish: !settings.mcpAllowPublish })}
+        />
+      ) : null}
 
       {error ? (
-        <p role="alert" className="mt-4 rounded bg-red-50 px-3 py-2 text-sm text-red-700">
+        <p role="alert" className="mt-3.5 border-2 border-[var(--accent)] px-3 py-2 text-sm">
           {error}
         </p>
       ) : null}
 
       {settings.mcpEnabled ? (
-        <div className="mt-6 space-y-5 border-t border-[var(--color-rule)] pt-5">
+        <div className="mt-5 space-y-4 border-t-2 border-[var(--soft)] pt-4">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wider text-[var(--color-muted)]">
+            <p className="mb-1.5 font-[family-name:var(--mono)] text-[10px] uppercase tracking-[0.1em] text-[var(--muted)]">
               Endpoint URL
             </p>
-            <code className="mt-1 block overflow-x-auto rounded bg-[var(--color-raised)] px-3 py-2 text-sm">
+            <code className="block overflow-x-auto border-2 border-[var(--soft)] bg-[var(--panel)] px-3 py-2 font-[family-name:var(--mono)] text-[13px]">
               {endpoint}
             </code>
           </div>
 
           <div>
             <div className="flex items-center justify-between gap-4">
-              <p className="text-xs font-semibold uppercase tracking-wider text-[var(--color-muted)]">
+              <p className="font-[family-name:var(--mono)] text-[10px] uppercase tracking-[0.1em] text-[var(--muted)]">
                 Bearer token
               </p>
               <button
                 type="button"
                 disabled={busy}
                 onClick={() => patch({ rotateMcpToken: true })}
-                className="text-sm text-[var(--color-accent)] hover:underline disabled:opacity-50"
+                className="btn btn-ghost font-[family-name:var(--mono)] text-[10px] uppercase tracking-[0.1em]"
               >
                 {settings.hasMcpToken ? 'Rotate token' : 'Generate token'}
               </button>
@@ -103,15 +104,15 @@ export function McpSettings({
 
             {freshToken ? (
               <div className="mt-2">
-                <code className="block overflow-x-auto rounded bg-[var(--color-raised)] px-3 py-2 text-sm">
+                <code className="block overflow-x-auto border-2 border-[var(--accent)] bg-[var(--panel)] px-3 py-2 font-[family-name:var(--mono)] text-[13px]">
                   {freshToken}
                 </code>
-                <p className="mt-1 text-xs text-amber-700 dark:text-amber-400">
+                <p className="mt-1.5 font-[family-name:var(--mono)] text-[10px] uppercase leading-relaxed tracking-[0.08em] text-[var(--accent-text)]">
                   Copy this now — it is not shown again. Rotating invalidates the previous token.
                 </p>
               </div>
             ) : (
-              <p className="mt-2 text-sm text-[var(--color-muted)]">
+              <p className="mt-2 text-sm text-[var(--muted)]">
                 {settings.hasMcpToken
                   ? 'A token is set. Rotate it if it may have leaked.'
                   : 'No token yet.'}
@@ -119,28 +120,11 @@ export function McpSettings({
             )}
           </div>
 
-          <label className="flex items-start gap-3">
-            <input
-              type="checkbox"
-              checked={settings.mcpAllowPublish}
-              disabled={busy}
-              onChange={(e) => patch({ mcpAllowPublish: e.target.checked })}
-              className="mt-1"
-            />
-            <span className="text-sm">
-              <span className="font-medium">Allow connected clients to publish and delete</span>
-              <span className="block text-[var(--color-muted)]">
-                Off by default. While off, a connected AI can only create and edit drafts —
-                putting a post on the public site stays a human decision.
-              </span>
-            </span>
-          </label>
-
           <details className="text-sm">
-            <summary className="cursor-pointer text-[var(--color-muted)]">
+            <summary className="cursor-pointer font-[family-name:var(--mono)] text-[10px] uppercase tracking-[0.1em] text-[var(--muted)]">
               How to connect an external client
             </summary>
-            <pre className="mt-2 overflow-x-auto rounded bg-[var(--color-raised)] p-3 text-xs">
+            <pre className="mt-2 overflow-x-auto border-2 border-[var(--soft)] bg-[var(--panel)] p-3 font-[family-name:var(--mono)] text-xs">
 {`{
   "mcpServers": {
     "blog": {
@@ -155,5 +139,40 @@ export function McpSettings({
         </div>
       ) : null}
     </section>
+  );
+}
+
+function Toggle({
+  label,
+  hint,
+  on,
+  busy,
+  onClick,
+}: {
+  label: string;
+  hint?: string;
+  on: boolean;
+  busy: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={on}
+      disabled={busy}
+      onClick={onClick}
+      className="flex w-full items-center justify-between gap-3 border-b border-[var(--soft)] py-3 text-left text-[var(--ink)] disabled:opacity-45"
+    >
+      <span className="min-w-0">
+        <span className="block text-sm">{label}</span>
+        {hint ? <span className="block text-xs text-[var(--muted)]">{hint}</span> : null}
+      </span>
+      <span
+        className={`tag ${on ? 'tag-accent' : 'tag-neutral'} flex-none font-[family-name:var(--mono)] text-[10px] uppercase tracking-[0.1em]`}
+      >
+        {on ? 'On' : 'Off'}
+      </span>
+    </button>
   );
 }

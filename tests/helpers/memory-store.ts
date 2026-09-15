@@ -60,6 +60,8 @@ export class MemoryPostStore implements PostReadWrite {
       coverImage: input.coverImage,
       tags: input.tags,
       status: input.status,
+      kind: input.kind,
+      maturity: input.maturity,
       readingTime: readingTimeMinutes(input.body),
       createdAt: now,
       updatedAt: now,
@@ -90,6 +92,8 @@ export class MemoryPostStore implements PostReadWrite {
     if (patch.excerpt !== undefined) next.excerpt = patch.excerpt;
     if (patch.coverImage !== undefined) next.coverImage = patch.coverImage;
     if (patch.tags !== undefined) next.tags = patch.tags;
+    if (patch.kind !== undefined) next.kind = patch.kind;
+    if (patch.maturity !== undefined) next.maturity = patch.maturity;
     if (patch.sources !== undefined) next.sources = patch.sources;
     if (patch.unsupportedClaims !== undefined) next.unsupportedClaims = patch.unsupportedClaims;
     if (patch.body !== undefined) {

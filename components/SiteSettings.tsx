@@ -9,6 +9,8 @@ export function SiteSettings({ initial }: { initial: PublicSettings }) {
   const [siteTitle, setSiteTitle] = useState(initial.siteTitle);
   const [siteDescription, setSiteDescription] = useState(initial.siteDescription);
   const [siteAuthor, setSiteAuthor] = useState(initial.siteAuthor);
+  const [siteRole, setSiteRole] = useState(initial.siteRole);
+  const [siteBio, setSiteBio] = useState(initial.siteBio);
   const [busy, setBusy] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -20,7 +22,7 @@ export function SiteSettings({ initial }: { initial: PublicSettings }) {
     const response = await fetch('/api/settings', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ siteTitle, siteDescription, siteAuthor }),
+      body: JSON.stringify({ siteTitle, siteDescription, siteAuthor, siteRole, siteBio }),
     });
     if (!response.ok) {
       const data = await response.json().catch(() => ({}));
@@ -33,52 +35,76 @@ export function SiteSettings({ initial }: { initial: PublicSettings }) {
     router.refresh();
   }
 
-  const field =
-    'mt-1 w-full rounded border border-[var(--color-rule)] bg-[var(--color-raised)] px-3 py-2 outline-none focus:border-[var(--color-accent)]';
-
   return (
-    <section className="rounded border border-[var(--color-rule)] p-6">
-      <h2 className="text-lg font-semibold">Site</h2>
+    <section className="field border-b-2 border-r-2 border-[var(--soft)] px-4 py-5">
+      <p className="mb-3.5 font-[family-name:var(--mono)] text-[10px] uppercase tracking-[0.12em] text-[var(--muted)]">
+        Identity
+      </p>
 
-      <label className="mt-4 block text-xs font-semibold uppercase tracking-wider text-[var(--color-muted)]">
-        Title
-      </label>
-      <input value={siteTitle} onChange={(e) => setSiteTitle(e.target.value)} className={field} />
+      <Label>Site title</Label>
+      <input
+        value={siteTitle}
+        onChange={(e) => setSiteTitle(e.target.value)}
+        className="input mb-3.5 text-[15px]"
+      />
 
-      <label className="mt-4 block text-xs font-semibold uppercase tracking-wider text-[var(--color-muted)]">
-        Author byline
-      </label>
+      <Label>Display name</Label>
       <input
         value={siteAuthor}
         onChange={(e) => setSiteAuthor(e.target.value)}
-        placeholder="Shown as “by …” next to the logo. Leave empty to hide."
-        className={field}
+        placeholder="Shown beside the wordmark. Leave empty to hide."
+        className="input mb-3.5 text-[15px]"
       />
 
-      <label className="mt-4 block text-xs font-semibold uppercase tracking-wider text-[var(--color-muted)]">
-        Description
-      </label>
+      <Label>Role</Label>
+      <input
+        value={siteRole}
+        onChange={(e) => setSiteRole(e.target.value)}
+        placeholder="Technical Lead, Platform Engineering"
+        className="input mb-3.5 text-[15px]"
+      />
+
+      <Label>Description</Label>
       <textarea
         value={siteDescription}
         onChange={(e) => setSiteDescription(e.target.value)}
         rows={2}
-        className={field}
+        className="input mb-3.5 text-[15px]"
+      />
+
+      <Label>Bio — the about page</Label>
+      <textarea
+        value={siteBio}
+        onChange={(e) => setSiteBio(e.target.value)}
+        rows={4}
+        className="input text-[15px]"
       />
 
       {error ? (
-        <p role="alert" className="mt-3 rounded bg-red-50 px-3 py-2 text-sm text-red-700">
+        <p role="alert" className="mt-3 border-2 border-[var(--accent)] px-3 py-2 text-sm">
           {error}
         </p>
       ) : null}
 
+      {/* No sign-out here. It sits in the portal header beside "exit admin",
+          which is where you look for it; two of the same control in two places
+          is how one of them goes stale. */}
       <button
         type="button"
         onClick={save}
         disabled={busy}
-        className="mt-4 rounded-full border border-[var(--color-rule)] px-4 py-2 text-sm font-medium disabled:opacity-50"
+        className="btn btn-primary mt-4 font-[family-name:var(--mono)] text-[10px] uppercase tracking-[0.1em]"
       >
         {busy ? 'Saving…' : saved ? 'Saved' : 'Save'}
       </button>
     </section>
+  );
+}
+
+function Label({ children }: { children: React.ReactNode }) {
+  return (
+    <label className="mb-1.5 block font-[family-name:var(--mono)] text-[10px] uppercase tracking-[0.1em] text-[var(--muted)]">
+      {children}
+    </label>
   );
 }

@@ -36,13 +36,16 @@ function LoginForm() {
   }
 
   return (
-    <form onSubmit={submit} className="mx-auto mt-24 max-w-sm px-5">
-      <h1 className="text-2xl font-bold tracking-tight">Sign in</h1>
-      <p className="mt-2 text-sm text-[var(--color-muted)]">Admin access to the portal.</p>
+    <form onSubmit={submit} className="field mx-auto mt-24 max-w-sm px-4">
+      <p className="mb-3 font-[family-name:var(--mono)] text-[11px] uppercase tracking-[0.14em] text-[var(--accent-text)]">
+        Portal
+      </p>
+      <h1 className="mb-2 text-[clamp(28px,6vw,42px)] font-extrabold leading-[1.05] tracking-[-0.03em]">
+        Sign in
+      </h1>
+      <p className="mb-7 text-sm text-[var(--muted)]">Admin access to the portal.</p>
 
-      <label className="mt-8 block text-sm font-medium" htmlFor="email">
-        Email
-      </label>
+      <label htmlFor="email">Email</label>
       <input
         id="email"
         type="email"
@@ -50,12 +53,10 @@ function LoginForm() {
         required
         value={email}
         onChange={(e) => setEmail(e.target.value)}
-        className="mt-1 w-full rounded border border-[var(--color-rule)] bg-[var(--color-raised)] px-3 py-2 outline-none focus:border-[var(--color-accent)]"
+        className="input mb-4"
       />
 
-      <label className="mt-4 block text-sm font-medium" htmlFor="password">
-        Password
-      </label>
+      <label htmlFor="password">Password</label>
       <input
         id="password"
         type="password"
@@ -63,11 +64,11 @@ function LoginForm() {
         required
         value={password}
         onChange={(e) => setPassword(e.target.value)}
-        className="mt-1 w-full rounded border border-[var(--color-rule)] bg-[var(--color-raised)] px-3 py-2 outline-none focus:border-[var(--color-accent)]"
+        className="input"
       />
 
       {error ? (
-        <p role="alert" className="mt-4 rounded bg-red-50 px-3 py-2 text-sm text-red-700">
+        <p role="alert" className="mt-4 border-2 border-[var(--accent)] px-3 py-2 text-sm">
           {error}
         </p>
       ) : null}
@@ -75,7 +76,7 @@ function LoginForm() {
       <button
         type="submit"
         disabled={busy}
-        className="mt-6 w-full rounded-full bg-[var(--color-accent)] px-4 py-2 font-medium text-white disabled:opacity-50"
+        className="btn btn-primary mt-6 w-full justify-center font-[family-name:var(--mono)] text-[11px] uppercase tracking-[0.1em]"
       >
         {busy ? 'Signing in…' : 'Sign in'}
       </button>

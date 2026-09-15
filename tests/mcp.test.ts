@@ -121,6 +121,31 @@ describe('create_post', () => {
     expect(stored!.slug).toBe('retrieval-beats-context-size');
   });
 
+  it('defaults an unclassified draft to the least committal taxonomy', async () => {
+    const { client, posts } = await connect();
+    await call(client, 'create_post', { title: 'Unclassified', body: BODY });
+
+    const [stored] = await posts.list();
+    // A client that does not pick must not have its post claim to be a
+    // finished deep dive.
+    expect(stored!.kind).toBe('notes');
+    expect(stored!.maturity).toBe('seed');
+  });
+
+  it('stores the kind and maturity a client does pick', async () => {
+    const { client, posts } = await connect();
+    await call(client, 'create_post', {
+      title: 'Classified',
+      body: BODY,
+      kind: 'walkthrough',
+      maturity: 'evergreen',
+    });
+
+    const [stored] = await posts.list();
+    expect(stored!.kind).toBe('walkthrough');
+    expect(stored!.maturity).toBe('evergreen');
+  });
+
   it('tells the caller the post is not public yet', async () => {
     const { client } = await connect();
     const result = await call(client, 'create_post', { title: 'A Post', body: BODY });
@@ -174,6 +199,19 @@ describe('update_post', () => {
 
     const post = await posts.findById(id);
     expect(post!.title).toBe('Edited Title');
+    expect(post!.body).toBe(BODY);
+  });
+
+  it('can reclassify an entry without touching anything else', async () => {
+    const { client, posts } = await connect();
+    const id = await seed(client, 'Reclassified');
+
+    await call(client, 'update_post', { id, maturity: 'growing' });
+
+    const post = await posts.findById(id);
+    expect(post!.maturity).toBe('growing');
+    // The kind was not passed, so it must be left where it was.
+    expect(post!.kind).toBe('notes');
     expect(post!.body).toBe(BODY);
   });
 

@@ -7,9 +7,13 @@ export const THEME_KEY = 'blog-theme';
 /**
  * Applied before first paint by the inline script in the layout, and again here
  * whenever the choice changes. Kept in one place so the two cannot drift.
+ *
+ * `data-theme` on <html> rather than a class: the design system's dark block is
+ * an attribute selector, and driving it from an attribute means the CSS is the
+ * only thing that needs to know how the theme is represented.
  */
 function apply(theme: 'light' | 'dark') {
-  document.documentElement.classList.toggle('dark', theme === 'dark');
+  document.documentElement.setAttribute('data-theme', theme);
 }
 
 export function ThemeToggle() {
@@ -18,7 +22,7 @@ export function ThemeToggle() {
   // Read the resolved theme after mount. Rendering the icon from state that is
   // only known client-side would otherwise mismatch the server HTML.
   useEffect(() => {
-    setTheme(document.documentElement.classList.contains('dark') ? 'dark' : 'light');
+    setTheme(document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light');
   }, []);
 
   function toggle() {
@@ -38,7 +42,7 @@ export function ThemeToggle() {
       onClick={toggle}
       aria-label={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
       title={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
-      className="rounded-full p-2 text-[var(--color-muted)] transition-colors hover:bg-[var(--color-raised)] hover:text-[var(--color-ink)]"
+      className="flex h-9 w-9 flex-none items-center justify-center border-2 border-[var(--soft)] text-[var(--ink)] transition-colors hover:bg-[var(--panel)]"
     >
       {/* Both icons are rendered and swapped with CSS so the button is correct
           on the server pass, before the resolved theme is known. */}
@@ -85,7 +89,9 @@ export const themeScript = `
     var stored = localStorage.getItem('${THEME_KEY}');
     var dark = stored ? stored === 'dark'
       : window.matchMedia('(prefers-color-scheme: dark)').matches;
-    if (dark) document.documentElement.classList.add('dark');
-  } catch (e) {}
+    document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+  } catch (e) {
+    document.documentElement.setAttribute('data-theme', 'light');
+  }
 })();
 `;
