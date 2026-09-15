@@ -31,12 +31,35 @@ export class SettingsStore {
     return { ...rest, hasMcpToken: Boolean(mcpToken) };
   }
 
+  /**
+   * Apply a partial change.
+   *
+   * The document is still read first, because the schema validates a whole
+   * settings object and fills defaults for a database that has none yet — but
+   * only the keys the caller actually passed are written back.
+   *
+   * Writing the merged document wholesale, as this used to, turns every save
+   * into a read-modify-write over *all* settings: two requests overlapping —
+   * one changing the site title, one toggling the MCP endpoint — would each
+   * write the whole object from its own stale read, and whichever landed second
+   * would silently revert the other. Saving the accent could switch MCP back
+   * off. Scoping `$set` to the patched keys means concurrent edits to different
+   * fields no longer collide, and edits to the same field resolve as
+   * last-write-wins, which is the right answer for a single operator.
+   */
   async update(patch: Partial<Settings>): Promise<Settings> {
-    const next = { ...(await this.get()), ...patch, updatedAt: new Date().toISOString() };
-    const parsed = SettingsSchema.parse(next);
+    const updatedAt = new Date().toISOString();
+    const parsed = SettingsSchema.parse({ ...(await this.get()), ...patch, updatedAt });
+
+    const changed = Object.fromEntries(
+      // Take the validated value rather than the raw input, so defaults and
+      // coercions applied by the schema are what reach the database.
+      Object.keys(patch).map((key) => [key, parsed[key as keyof Settings]]),
+    );
+
     await this.settings.updateOne(
       { _id: SINGLETON },
-      { $set: parsed },
+      { $set: { ...changed, updatedAt } },
       { upsert: true },
     );
     return parsed;

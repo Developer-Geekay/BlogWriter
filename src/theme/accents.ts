@@ -22,6 +22,16 @@ export interface Accent {
   darkText: string;
 }
 
+/**
+ * Ordered warm to cool, with the two neutrals last.
+ *
+ * Every entry except `red` clears 4.5:1 on all four of its uses — see
+ * `tests/accents.test.ts`, which measures them rather than trusting this
+ * comment. `red` is the design system's own `#ec3013`, whose readme puts the
+ * accent-to-ground pair at about 3:1; it is kept exactly as specified because
+ * it is the brand, and it is the reason `lightText` exists as a separate value
+ * in the first place.
+ */
 export const ACCENTS: readonly Accent[] = [
   {
     id: 'red',
@@ -32,12 +42,44 @@ export const ACCENTS: readonly Accent[] = [
     darkText: '#ff8f7c',
   },
   {
-    id: 'ink',
-    label: 'Ink',
-    light: '#201e1d',
-    dark: '#f3f2f2',
-    lightText: '#201e1d',
-    darkText: '#f3f2f2',
+    id: 'amber',
+    label: 'Ochre',
+    light: '#8f4e00',
+    dark: '#f2a93b',
+    lightText: '#7a4200',
+    darkText: '#f7c069',
+  },
+  {
+    id: 'plum',
+    label: 'Plum',
+    light: '#8e1f57',
+    dark: '#f07ab5',
+    lightText: '#761a49',
+    darkText: '#f5a3ce',
+  },
+  {
+    id: 'violet',
+    label: 'Violet',
+    light: '#52308f',
+    dark: '#b494f7',
+    lightText: '#452878',
+    darkText: '#c9b2fa',
+  },
+  {
+    id: 'blue',
+    label: 'Ultramarine',
+    light: '#2d3ea8',
+    dark: '#8b97f2',
+    lightText: '#232f80',
+    darkText: '#aab3f7',
+  },
+  {
+    id: 'steel',
+    label: 'Steel',
+    light: '#2c556e',
+    dark: '#7fc3e6',
+    lightText: '#24465c',
+    darkText: '#a5d6ef',
   },
   {
     id: 'teal',
@@ -48,12 +90,20 @@ export const ACCENTS: readonly Accent[] = [
     darkText: '#7fd0ca',
   },
   {
-    id: 'blue',
-    label: 'Ultramarine',
-    light: '#2d3ea8',
-    dark: '#8b97f2',
-    lightText: '#232f80',
-    darkText: '#aab3f7',
+    id: 'forest',
+    label: 'Forest',
+    light: '#1b5e2f',
+    dark: '#5fc97f',
+    lightText: '#154a25',
+    darkText: '#8adba1',
+  },
+  {
+    id: 'ink',
+    label: 'Ink',
+    light: '#201e1d',
+    dark: '#f3f2f2',
+    lightText: '#201e1d',
+    darkText: '#f3f2f2',
   },
 ] as const;
 
