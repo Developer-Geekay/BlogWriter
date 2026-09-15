@@ -105,7 +105,18 @@ export default async function PostPage({ params }: Props) {
       </div>
 
       <div className="flex flex-wrap items-start border-t-2 border-[var(--rule)] pb-12">
-        <aside className="sticky top-[104px] self-start py-6 pr-5 [flex:1_1_220px] min-w-0">
+        {/*
+          A rail, not a column: `flex-grow: 0`.
+
+          The article beside it is capped at a 72ch measure, so once it reaches
+          that width it stops absorbing free space — and a growable sidebar then
+          takes every remaining pixel. On a 1440px screen that left the contents
+          list 509px wide, 45% of the row, for five short lines of mono text.
+          Fixing the basis keeps the rail the size its content needs and lets
+          the surplus fall to the right of the article, which is where flush-left
+          layout wants it.
+        */}
+        <aside className="sticky top-[104px] min-w-0 self-start py-6 pr-5 [flex:0_1_280px]">
           {outline.length > 0 ? (
             <>
               <p className="mb-2.5 font-[family-name:var(--mono)] text-[10px] uppercase tracking-[0.12em] text-[var(--muted)]">
