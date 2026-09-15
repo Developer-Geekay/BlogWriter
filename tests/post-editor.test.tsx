@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: vi.fn(), replace: vi.fn(), refresh: vi.fn() }),
@@ -20,6 +20,8 @@ async function fixture(overrides: Record<string, unknown> = {}) {
     coverImage: null,
     slug: undefined,
     status: 'draft',
+    kind: 'deep-dive',
+    maturity: 'seed',
     sources: [],
     unsupportedClaims: [],
     ...overrides,
@@ -28,47 +30,85 @@ async function fixture(overrides: Record<string, unknown> = {}) {
 
 afterEach(cleanup);
 
+/** The preview control is one toggle, labelled by what clicking it will do. */
+const showPreview = () => screen.getByRole('button', { name: 'Show preview' });
+const hidePreview = () => screen.getByRole('button', { name: 'Hide preview' });
+
 describe('PostEditor preview', () => {
-  it('starts in write mode with the Markdown source editable', async () => {
+  it('starts with the source editable and the preview already open', async () => {
     render(<PostEditor post={await fixture()} />);
 
     expect(screen.getByLabelText('Body')).toBeDefined();
-    expect(screen.getByRole('button', { name: 'write' }).getAttribute('aria-pressed')).toBe(
-      'true',
-    );
+    expect(screen.getByRole('region', { name: 'Live preview' })).toBeDefined();
+    expect(hidePreview().getAttribute('aria-pressed')).toBe('true');
   });
 
-  it('renders the Markdown when switched to preview', async () => {
+  it('renders the Markdown beside the source, not instead of it', async () => {
     render(<PostEditor post={await fixture()} />);
 
-    fireEvent.click(screen.getByRole('button', { name: 'preview' }));
+    // Side by side: you write against the rendered result, so the textarea
+    // stays editable while the preview is up.
+    expect(screen.getByLabelText('Body')).toBeDefined();
 
-    // The source is replaced by the rendered article, not shown alongside it.
-    expect(screen.queryByLabelText('Body')).toBeNull();
-    expect(screen.getByRole('heading', { name: 'A heading' })).toBeDefined();
-    expect(screen.getByRole('link', { name: 'link' }).getAttribute('href')).toBe(
+    const preview = within(screen.getByRole('region', { name: 'Live preview' }));
+    expect(preview.getByRole('heading', { name: 'A heading' })).toBeDefined();
+    expect(preview.getByRole('link', { name: 'link' }).getAttribute('href')).toBe(
       'https://example.com',
     );
   });
 
-  it('keeps edits when toggling back and forth', async () => {
+  it('tracks the source as it is typed', async () => {
     render(<PostEditor post={await fixture()} />);
 
     const body = screen.getByLabelText('Body') as HTMLTextAreaElement;
     fireEvent.change(body, { target: { value: 'rewritten' } });
 
-    fireEvent.click(screen.getByRole('button', { name: 'preview' }));
-    expect(screen.getByText('rewritten')).toBeDefined();
+    const preview = within(screen.getByRole('region', { name: 'Live preview' }));
+    expect(preview.getByText('rewritten')).toBeDefined();
+  });
 
-    fireEvent.click(screen.getByRole('button', { name: 'write' }));
+  it('keeps edits when the preview is closed again', async () => {
+    render(<PostEditor post={await fixture()} />);
+
+    const body = screen.getByLabelText('Body') as HTMLTextAreaElement;
+    fireEvent.change(body, { target: { value: 'rewritten' } });
+
+    fireEvent.click(hidePreview());
+    expect(screen.queryByRole('region', { name: 'Live preview' })).toBeNull();
     expect((screen.getByLabelText('Body') as HTMLTextAreaElement).value).toBe('rewritten');
   });
 
   it('says so rather than rendering an empty frame', () => {
     render(<PostEditor />);
 
-    fireEvent.click(screen.getByRole('button', { name: 'preview' }));
     expect(screen.getByText('Nothing to preview yet.')).toBeDefined();
+  });
+
+  it('reopens after being closed', async () => {
+    render(<PostEditor post={await fixture()} />);
+
+    fireEvent.click(hidePreview());
+    expect(screen.queryByRole('region', { name: 'Live preview' })).toBeNull();
+
+    fireEvent.click(showPreview());
+    expect(screen.getByRole('region', { name: 'Live preview' })).toBeDefined();
+  });
+
+  it('files the entry under the kind and maturity picked in the chip rows', async () => {
+    render(<PostEditor post={await fixture()} />);
+
+    // The stored values start pressed…
+    expect(screen.getByRole('button', { name: 'DEEP DIVE' }).getAttribute('aria-pressed')).toBe(
+      'true',
+    );
+    expect(screen.getByRole('button', { name: 'SEED' }).getAttribute('aria-pressed')).toBe('true');
+
+    // …and picking another moves the pressed state with it.
+    fireEvent.click(screen.getByRole('button', { name: 'EVERGREEN' }));
+    expect(screen.getByRole('button', { name: 'EVERGREEN' }).getAttribute('aria-pressed')).toBe(
+      'true',
+    );
+    expect(screen.getByRole('button', { name: 'SEED' }).getAttribute('aria-pressed')).toBe('false');
   });
 
   it('offers the live link only once a post is published', async () => {

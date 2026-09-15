@@ -1,3 +1,5 @@
+import { isAdminPath } from '@/src/routes';
+
 /**
  * Configuration for the external analytics platform.
  *
@@ -82,7 +84,7 @@ export function resolveAnalytics(env: AnalyticsEnv): AnalyticsConfig | null {
  * identifiers through a third-party dataset.
  */
 export function isTrackablePath(pathname: string): boolean {
-  return !(pathname === '/admin' || pathname.startsWith('/admin/'));
+  return !isAdminPath(pathname);
 }
 
 /**

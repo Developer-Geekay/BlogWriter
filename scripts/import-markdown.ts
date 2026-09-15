@@ -56,6 +56,10 @@ async function main() {
       slug: fm.slug,
       tags: fm.tags,
       coverImage: null,
+      // The old file-based front matter has no equivalent of either taxonomy,
+      // so imports land on the defaults and get classified by hand afterwards.
+      kind: 'notes',
+      maturity: 'seed',
       // The old store's "published" is the only state that should go live now.
       status: fm.status === 'published' ? 'published' : 'draft',
       sources: fm.sources.map((s) => ({ url: s.url, title: s.title })),

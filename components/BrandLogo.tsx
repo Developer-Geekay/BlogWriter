@@ -1,30 +1,29 @@
 import Link from 'next/link';
 
 /**
- * Monogram plus wordmark.
+ * The wordmark.
  *
- * Both come from `siteTitle` in Settings — the monogram is just its first
- * letter — so renaming the blog never means editing this file or redrawing an
- * icon. A monogram suits a personal byline better than a generic writing glyph.
+ * Just the publication name — the mono kicker beside it names which side of the
+ * app you are on, not who wrote it, so the author byline that used to sit here
+ * would be competing for the same slot. The author still appears in the footer
+ * and on the about page.
+ *
+ * The design also drops the circular monogram the previous look used: a round
+ * badge has no place in a system whose first rule is that nothing is rounded.
  */
-export function BrandLogo({ title, author }: { title: string; author?: string }) {
-  const initial = title.trim().charAt(0).toUpperCase() || 'B';
-
+export function BrandLogo({ title }: { title: string }) {
   return (
-    <Link href="/" className="group flex items-center gap-2.5" aria-label={`${title} — home`}>
-      <span
-        aria-hidden
-        className="flex h-8 w-8 flex-none items-center justify-center rounded-full bg-[var(--color-ink)] text-sm font-bold text-[var(--color-surface)] transition-transform group-hover:scale-105"
-      >
-        {initial}
-      </span>
-      <span className="flex flex-col leading-none">
-        <span className="text-lg font-bold tracking-tight">{title}</span>
-        {author ? (
-          <span className="mt-0.5 text-xs font-normal text-[var(--color-muted)]">
-            by {author}
-          </span>
-        ) : null}
+    <Link
+      href="/"
+      // `min-w-0` is what lets the wordmark truncate instead of holding the
+      // header open: a flex item defaults to min-width:auto, so without it the
+      // title's full width is a hard floor and the controls beside it get
+      // pushed off a phone screen.
+      className="flex min-w-0 shrink items-baseline no-underline"
+      aria-label={`${title} — home`}
+    >
+      <span className="truncate text-[17px] font-extrabold tracking-[-0.02em] text-[var(--ink)]">
+        {title}
       </span>
     </Link>
   );

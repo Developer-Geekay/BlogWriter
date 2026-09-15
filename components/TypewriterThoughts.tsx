@@ -84,7 +84,8 @@ export function TypewriterThoughts({ thoughts = DEFAULT_THOUGHTS }: { thoughts?:
     };
   }, [thoughts]);
 
-  const line = 'article-body min-h-[4.5rem] text-2xl leading-snug sm:text-3xl';
+  const line =
+    'min-h-[4.5rem] max-w-[22ch] text-[clamp(28px,7vw,52px)] font-extrabold leading-[1.05] tracking-[-0.03em]';
 
   if (staticLine) {
     return <p className={line}>{staticLine}</p>;

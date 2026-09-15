@@ -1,7 +1,57 @@
 import { z } from 'zod';
+import { DEFAULT_ACCENT_ID } from '../theme/accents.js';
 
 export const POST_STATUSES = ['draft', 'published', 'archived'] as const;
 export type PostStatus = (typeof POST_STATUSES)[number];
+
+/**
+ * What kind of piece this is. Shown as a chip on the entry and in the feed.
+ *
+ * Stored as slugs and rendered uppercase — "DEEP DIVE" is presentation, not
+ * data. `notes` is the default because it is the least committal: a post filed
+ * by an AI client that did not pick a kind should not claim to be a deep dive.
+ */
+export const POST_KINDS = [
+  'deep-dive',
+  'til',
+  'walkthrough',
+  'series',
+  'essay',
+  'links',
+  'notes',
+] as const;
+export type PostKind = (typeof POST_KINDS)[number];
+
+/**
+ * How finished the piece is, as distinct from whether it is published.
+ *
+ * The two are orthogonal on purpose: a published post can still be a seed, and
+ * saying so openly is the point of the taxonomy. Defaults to `seed` so nothing
+ * claims to be settled by accident.
+ */
+export const POST_MATURITIES = ['seed', 'growing', 'evergreen'] as const;
+export type PostMaturity = (typeof POST_MATURITIES)[number];
+
+/** Uppercase display labels, derived so the two can never drift. */
+export function kindLabel(kind: PostKind): string {
+  return kind.replace(/-/g, ' ').toUpperCase();
+}
+
+export function maturityLabel(maturity: PostMaturity): string {
+  return maturity.toUpperCase();
+}
+
+/**
+ * The sequence number shown against an entry ("014").
+ *
+ * Derived from position in a newest-first list rather than stored: a stored
+ * number needs collision handling, renumbering on delete, and a backfill for
+ * every existing post. Position gives the same reading — oldest is 001 — for
+ * none of that.
+ */
+export function entryNumber(indexInNewestFirstList: number, total: number): string {
+  return String(Math.max(1, total - indexInNewestFirstList)).padStart(3, '0');
+}
 
 export const SourceSchema = z.object({
   url: z.string(),
@@ -23,6 +73,8 @@ export const PostSchema = z.object({
   coverImage: z.string().nullable().default(null),
   tags: z.array(z.string()).default([]),
   status: z.enum(POST_STATUSES).default('draft'),
+  kind: z.enum(POST_KINDS).default('notes'),
+  maturity: z.enum(POST_MATURITIES).default('seed'),
   /** Minutes, derived from the body on every write. */
   readingTime: z.number().int().min(1).default(1),
   createdAt: z.string(),
@@ -50,6 +102,8 @@ export const PostCreateSchema = z.object({
   coverImage: z.string().nullable().default(null),
   tags: z.array(z.string()).default([]),
   status: z.enum(POST_STATUSES).default('draft'),
+  kind: z.enum(POST_KINDS).default('notes'),
+  maturity: z.enum(POST_MATURITIES).default('seed'),
   sources: z.array(SourceSchema).default([]),
   unsupportedClaims: z.array(z.string()).default([]),
 });
@@ -82,6 +136,23 @@ export const SettingsSchema = z.object({
    * title stops repeating the author's name. Empty hides it.
    */
   siteAuthor: z.string().default('Gokulakannan'),
+  /**
+   * The author's role, shown as a mono kicker under their name on the about
+   * page. Separate from the byline because the byline has to stay short enough
+   * for the header, and this does not.
+   */
+  siteRole: z.string().default(''),
+  /**
+   * Which accent the site wears. A key into the palette in
+   * `src/theme/accents.ts`, not a hex — each entry carries hand-picked light
+   * and dark variants, which a raw colour could not.
+   */
+  siteAccent: z.string().default(DEFAULT_ACCENT_ID),
+  /**
+   * Free prose for the about page. Blank hides the page's body and leaves just
+   * the name and role, which is better than shipping placeholder copy.
+   */
+  siteBio: z.string().default(''),
   /**
    * Master switch for the MCP endpoint. When false, `/api/mcp` refuses every
    * request — this is the toggle that disconnects external AI portals without

@@ -1,56 +1,60 @@
 import Link from 'next/link';
-import type { Post } from '@/src/db/types';
+import { kindLabel, maturityLabel, type Post } from '@/src/db/types';
 
 export function formatDate(iso: string | null): string {
   if (!iso) return 'Unpublished';
-  return new Date(iso).toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  });
+  return new Date(iso)
+    .toLocaleDateString('en-GB', { year: 'numeric', month: 'short', day: '2-digit' })
+    .toUpperCase();
 }
 
-export function PostCard({ post }: { post: Post }) {
+/**
+ * One entry in a list.
+ *
+ * A two-column row: the metadata rail on the left, the entry itself on the
+ * right. Below ~640px the rail wraps above the title rather than squeezing —
+ * `flex-basis` on both children does that without a media query.
+ *
+ * `number` is the derived sequence label ("014"). It is passed in rather than
+ * read off the post because it depends on position in the list being rendered,
+ * which the post itself cannot know.
+ */
+export function PostCard({ post, number }: { post: Post; number?: string }) {
   return (
-    <article className="border-b border-[var(--color-rule)] py-8">
-      <div className="flex items-start justify-between gap-8">
-        <div className="min-w-0 flex-1">
-          <Link href={`/blog/${post.slug}`} className="group">
-            <h2 className="text-2xl font-bold leading-snug tracking-tight group-hover:underline">
-              {post.title}
-            </h2>
-            {post.excerpt ? (
-              <p className="mt-2 line-clamp-2 text-[var(--color-muted)]">{post.excerpt}</p>
-            ) : null}
-          </Link>
-
-          <div className="mt-4 flex flex-wrap items-center gap-3 text-sm text-[var(--color-muted)]">
-            <time dateTime={post.publishedAt ?? undefined}>{formatDate(post.publishedAt)}</time>
-            <span aria-hidden>·</span>
-            <span>{post.readingTime} min read</span>
-            {post.tags.slice(0, 2).map((tag) => (
-              <Link
-                key={tag}
-                href={`/tag/${encodeURIComponent(tag)}`}
-                className="rounded-full bg-[var(--color-raised)] px-3 py-1 text-xs hover:opacity-80"
-              >
-                {tag}
-              </Link>
-            ))}
-          </div>
+    <article className="border-b-2 border-[var(--soft)]">
+      <Link
+        href={`/blog/${post.slug}`}
+        className="flex flex-wrap items-start gap-x-6 gap-y-2.5 py-5 no-underline hover:bg-[var(--panel)]"
+      >
+        <div className="flex min-w-0 flex-wrap items-center gap-2 [flex:1_1_150px]">
+          {number ? (
+            <span className="font-[family-name:var(--mono)] text-[11px] text-[var(--accent-text)]">
+              {number}
+            </span>
+          ) : null}
+          <span className="bg-[var(--ink)] px-1.5 py-0.5 font-[family-name:var(--mono)] text-[10px] uppercase tracking-[0.1em] text-[var(--ground)]">
+            {kindLabel(post.kind)}
+          </span>
+          <span className="font-[family-name:var(--mono)] text-[10px] uppercase tracking-[0.1em] text-[var(--muted)]">
+            {maturityLabel(post.maturity)} · {post.readingTime} MIN
+          </span>
         </div>
 
-        {post.coverImage ? (
-          // A remote cover URL can be any host, so use a plain <img> rather than
-          // next/image, which would need every domain allow-listed up front.
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={post.coverImage}
-            alt=""
-            className="h-28 w-28 flex-none rounded object-cover sm:h-32 sm:w-48"
-          />
-        ) : null}
-      </div>
+        <div className="min-w-0 [flex:3_1_320px]">
+          <h2 className="mb-2 max-w-[32ch] text-[clamp(21px,3.4vw,30px)] font-extrabold leading-[1.1] tracking-[-0.025em] text-[var(--ink)]">
+            {post.title}
+          </h2>
+          {post.excerpt ? (
+            <p className="mb-2 max-w-[60ch] text-[15px] text-[var(--muted)] [text-wrap:pretty]">
+              {post.excerpt}
+            </p>
+          ) : null}
+          <span className="font-[family-name:var(--mono)] text-[10px] uppercase tracking-[0.1em] text-[var(--muted)]">
+            {post.tags[0] ? `${post.tags[0]} · ` : ''}
+            {formatDate(post.publishedAt)}
+          </span>
+        </div>
+      </Link>
     </article>
   );
 }

@@ -2,7 +2,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import { z } from 'zod';
 import { PostNotFoundError, SlugTakenError, type PostReadWrite } from '../db/posts.js';
-import { POST_STATUSES, type Post } from '../db/types.js';
+import { POST_KINDS, POST_MATURITIES, POST_STATUSES, type Post } from '../db/types.js';
 import { InvalidSlugError } from '../store/slug.js';
 import type { Profile, Topics } from '../config/schema.js';
 
@@ -43,6 +43,8 @@ function summarise(post: Post, siteUrl?: string) {
     title: post.title,
     excerpt: post.excerpt,
     status: post.status,
+    kind: post.kind,
+    maturity: post.maturity,
     tags: post.tags,
     readingTime: post.readingTime,
     publishedAt: post.publishedAt,
@@ -159,6 +161,23 @@ export function buildMcpServer(options: McpServerOptions): McpServer {
         body: z.string().min(1).describe('Markdown body. No H1 — the title is separate.'),
         excerpt: z.string().default('').describe('One or two sentences for previews.'),
         tags: z.array(z.string()).default([]),
+        kind: z
+          .enum(POST_KINDS)
+          .default('notes')
+          .describe(
+            'What sort of piece this is. "til" for a single short finding, "deep-dive" for ' +
+              'a long treatment of one problem, "walkthrough" for annotated code, "essay" ' +
+              'for an argument, "links" for a roundup, "series" for one part of several. ' +
+              'Leave as "notes" if none of them fits.',
+          ),
+        maturity: z
+          .enum(POST_MATURITIES)
+          .default('seed')
+          .describe(
+            'How finished the thinking is, which is not the same as whether it is published. ' +
+              '"seed" is rough and still moving, "growing" is usable but incomplete, ' +
+              '"evergreen" is settled. Default to "seed" — the author raises it, not you.',
+          ),
         slug: z.string().optional().describe('Override the slug derived from the title.'),
         coverImage: z.string().nullable().default(null).describe('Absolute image URL.'),
         sources: z
@@ -215,6 +234,8 @@ export function buildMcpServer(options: McpServerOptions): McpServer {
         body: z.string().optional().describe('Replaces the whole Markdown body.'),
         excerpt: z.string().optional(),
         tags: z.array(z.string()).optional(),
+        kind: z.enum(POST_KINDS).optional(),
+        maturity: z.enum(POST_MATURITIES).optional(),
         coverImage: z.string().nullable().optional(),
         unsupportedClaims: z.array(z.string()).optional(),
       },

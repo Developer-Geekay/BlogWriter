@@ -6,6 +6,9 @@ import { currentSession } from '@/src/auth/guard';
 import { Markdown } from '@/components/Markdown';
 import { formatDate } from '@/components/PostCard';
 import { DatabaseErrorNotice, asDatabaseError } from '@/components/DatabaseErrorNotice';
+import { ReadTracker } from '@/components/ReadTracker';
+import { extractOutline } from '@/src/content/outline';
+import { entryNumber, kindLabel, maturityLabel } from '@/src/db/types';
 
 export const dynamic = 'force-dynamic';
 
@@ -32,8 +35,13 @@ export default async function PostPage({ params }: Props) {
   const { slug } = await params;
 
   let post;
+  let siblings;
   try {
-    post = await (await PostStore.open()).findBySlug(slug);
+    const store = await PostStore.open();
+    post = await store.findBySlug(slug);
+    // The published feed in the order the reader sees it, so "previous" and
+    // "next" mean the same thing here as they do on the index.
+    siblings = await store.list({ status: 'published', limit: 100 });
   } catch (err) {
     return <DatabaseErrorNotice error={asDatabaseError(err)} />;
   }
@@ -46,73 +54,155 @@ export default async function PostPage({ params }: Props) {
   // finding the post in a list, and opening it.
   const session = await currentSession();
 
+  const index = siblings.findIndex((p) => p.id === post.id);
+  const newer = index > 0 ? siblings[index - 1] : undefined;
+  const older = index >= 0 && index < siblings.length - 1 ? siblings[index + 1] : undefined;
+  const outline = extractOutline(post.body);
+
   return (
-    <article className="mx-auto max-w-3xl px-5 py-12">
-      <h1 className="text-4xl font-bold leading-tight tracking-tight sm:text-5xl">{post.title}</h1>
+    <div className="mx-auto max-w-[1160px] px-4">
+      <div className="pt-6">
+        <Link
+          href="/"
+          className="inline-block pb-4 font-[family-name:var(--mono)] text-[11px] uppercase tracking-[0.1em] text-[var(--muted)] no-underline hover:text-[var(--ink)]"
+        >
+          ← Back to log
+        </Link>
 
-      {post.excerpt ? (
-        <p className="mt-4 text-xl text-[var(--color-muted)]">{post.excerpt}</p>
-      ) : null}
+        <div className="mb-3.5 flex flex-wrap items-center gap-2.5">
+          {index >= 0 ? (
+            <span className="font-[family-name:var(--mono)] text-[11px] text-[var(--accent-text)]">
+              {entryNumber(index, siblings.length)}
+            </span>
+          ) : null}
+          <span className="bg-[var(--ink)] px-1.5 py-0.5 font-[family-name:var(--mono)] text-[10px] uppercase tracking-[0.1em] text-[var(--ground)]">
+            {kindLabel(post.kind)}
+          </span>
+          <span className="font-[family-name:var(--mono)] text-[10px] uppercase tracking-[0.1em] text-[var(--muted)]">
+            {maturityLabel(post.maturity)} · {post.readingTime} MIN READ · UPDATED{' '}
+            {formatDate(post.updatedAt)}
+          </span>
 
-      <div className="mt-6 flex flex-wrap items-center gap-3 border-b border-[var(--color-rule)] pb-6 text-sm text-[var(--color-muted)]">
-        <time dateTime={post.publishedAt ?? undefined}>{formatDate(post.publishedAt)}</time>
-        <span aria-hidden>·</span>
-        <span>{post.readingTime} min read</span>
+          {session ? (
+            <Link
+              href={`/admin/posts/${post.id}/edit`}
+              className="btn btn-secondary ml-auto font-[family-name:var(--mono)] text-[10px] uppercase tracking-[0.1em] no-underline"
+            >
+              Edit
+            </Link>
+          ) : null}
+        </div>
 
-        {session ? (
-          <Link
-            href={`/admin/posts/${post.id}/edit`}
-            className="ml-auto rounded-full border border-[var(--color-rule)] px-3 py-1 font-medium text-[var(--color-ink)] hover:border-[var(--color-accent)] hover:text-[var(--color-accent)]"
-          >
-            Edit post
-          </Link>
+        <h1 className="mb-4 max-w-[24ch] text-[clamp(30px,6vw,60px)] font-extrabold leading-none tracking-[-0.035em]">
+          {post.title}
+        </h1>
+
+        {post.excerpt ? (
+          <p className="mb-6 max-w-[60ch] border-l-2 border-[var(--accent)] pl-3.5 text-[19px] leading-[1.45] text-[var(--muted)] [text-wrap:pretty]">
+            {post.excerpt}
+          </p>
         ) : null}
       </div>
 
-      {post.coverImage ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={post.coverImage} alt="" className="mt-8 w-full rounded-lg object-cover" />
-      ) : null}
+      <div className="flex flex-wrap items-start border-t-2 border-[var(--rule)] pb-12">
+        <aside className="sticky top-[104px] self-start py-6 pr-5 [flex:1_1_220px] min-w-0">
+          {outline.length > 0 ? (
+            <>
+              <p className="mb-2.5 font-[family-name:var(--mono)] text-[10px] uppercase tracking-[0.12em] text-[var(--muted)]">
+                On this page
+              </p>
+              <nav className="mb-5 flex flex-col gap-2">
+                {outline.map((item) => (
+                  <a
+                    key={item.id}
+                    href={`#${item.id}`}
+                    className={`border-l-2 border-[var(--soft)] font-[family-name:var(--mono)] text-[11px] tracking-[0.04em] text-[var(--ink)] no-underline hover:border-[var(--accent)] ${
+                      item.level === 3 ? 'pl-4' : 'pl-2'
+                    }`}
+                  >
+                    {item.text}
+                  </a>
+                ))}
+              </nav>
+            </>
+          ) : null}
 
-      <div className="mt-8">
-        <Markdown>{post.body}</Markdown>
+          {post.tags.length > 0 ? (
+            <>
+              <p className="mb-2.5 font-[family-name:var(--mono)] text-[10px] uppercase tracking-[0.12em] text-[var(--muted)]">
+                Filed under
+              </p>
+              <div className="flex flex-wrap gap-1.5">
+                {post.tags.map((tag) => (
+                  <Link
+                    key={tag}
+                    href={`/tag/${encodeURIComponent(tag)}`}
+                    className="border-2 border-[var(--soft)] px-1.5 py-0.5 font-[family-name:var(--mono)] text-[10px] uppercase tracking-[0.08em] text-[var(--muted)] no-underline hover:border-[var(--accent)] hover:text-[var(--ink)]"
+                  >
+                    {tag}
+                  </Link>
+                ))}
+              </div>
+            </>
+          ) : null}
+        </aside>
+
+        <article className="min-w-0 max-w-[72ch] border-l-2 border-[var(--soft)] pl-7 pt-6 [flex:3_1_440px]">
+          {post.coverImage ? (
+            // A remote cover URL can be any host, so use a plain <img> rather
+            // than next/image, which would need every domain allow-listed.
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={post.coverImage} alt="" className="mb-6 w-full object-cover grayscale" />
+          ) : null}
+
+          <Markdown>{post.body}</Markdown>
+
+          {post.sources.length > 0 ? (
+            <section className="mt-10 border-t-2 border-[var(--soft)] pt-6">
+              <h2 className="mb-3 font-[family-name:var(--mono)] text-[10px] uppercase tracking-[0.12em] text-[var(--muted)]">
+                Sources
+              </h2>
+              <ul className="space-y-1 text-sm">
+                {post.sources.map((source) => (
+                  <li key={source.url}>
+                    <a
+                      href={source.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[var(--accent-text)] underline underline-offset-[3px]"
+                    >
+                      {source.title || source.url}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ) : null}
+
+          {/* Sits after the body and the sources, so "seen" genuinely means the
+              reader reached the end of the entry. */}
+          <ReadTracker slug={post.slug} />
+
+          <nav className="mt-6 flex flex-wrap gap-2.5 border-t-2 border-[var(--soft)] pt-4">
+            {older ? (
+              <Link
+                href={`/blog/${older.slug}`}
+                className="btn btn-secondary font-[family-name:var(--mono)] text-[10px] uppercase tracking-[0.1em] no-underline"
+              >
+                ← {older.title.slice(0, 40)}
+              </Link>
+            ) : null}
+            {newer ? (
+              <Link
+                href={`/blog/${newer.slug}`}
+                className="btn btn-secondary ml-auto font-[family-name:var(--mono)] text-[10px] uppercase tracking-[0.1em] no-underline"
+              >
+                {newer.title.slice(0, 40)} →
+              </Link>
+            ) : null}
+          </nav>
+        </article>
       </div>
-
-      {post.tags.length > 0 ? (
-        <div className="mt-12 flex flex-wrap gap-2 border-t border-[var(--color-rule)] pt-8">
-          {post.tags.map((tag) => (
-            <Link
-              key={tag}
-              href={`/tag/${encodeURIComponent(tag)}`}
-              className="rounded-full bg-[var(--color-raised)] px-4 py-1.5 text-sm hover:opacity-80"
-            >
-              {tag}
-            </Link>
-          ))}
-        </div>
-      ) : null}
-
-      {post.sources.length > 0 ? (
-        <section className="mt-10 border-t border-[var(--color-rule)] pt-8">
-          <h2 className="text-sm font-semibold uppercase tracking-wider text-[var(--color-muted)]">
-            Sources
-          </h2>
-          <ul className="mt-3 space-y-1 text-sm">
-            {post.sources.map((source) => (
-              <li key={source.url}>
-                <a
-                  href={source.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-[var(--color-accent)] hover:underline"
-                >
-                  {source.title || source.url}
-                </a>
-              </li>
-            ))}
-          </ul>
-        </section>
-      ) : null}
-    </article>
+    </div>
   );
 }

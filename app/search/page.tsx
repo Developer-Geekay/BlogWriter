@@ -4,6 +4,7 @@ import { PostStore } from '@/src/db/posts';
 import { PostCard } from '@/components/PostCard';
 import { SearchBox } from '@/components/SearchBox';
 import { DatabaseErrorNotice, asDatabaseError } from '@/components/DatabaseErrorNotice';
+import { entryNumber } from '@/src/db/types';
 
 export const dynamic = 'force-dynamic';
 
@@ -37,78 +38,77 @@ export default async function SearchPage({ searchParams }: Props) {
     : [];
 
   return (
-    <div className="mx-auto max-w-3xl px-5 py-12">
-      <h1 className="text-3xl font-bold tracking-tight">Search</h1>
-
-      <div className="mt-6 sm:hidden">
-        <SearchBox initialQuery={query} />
-      </div>
-
-      {query ? (
-        <p className="mt-4 text-[var(--color-muted)]">
-          {posts.length} {posts.length === 1 ? 'result' : 'results'} for{' '}
-          <span className="font-medium text-[var(--color-ink)]">“{query}”</span>
+    <div className="mx-auto max-w-[1160px] px-4">
+      <section className="border-b-2 border-[var(--rule)] pb-5 pt-7">
+        <h1 className="mb-4 text-[clamp(30px,7.5vw,52px)] font-extrabold leading-[1.02] tracking-[-0.035em]">
+          Search
+        </h1>
+        <div className="max-w-[560px]">
+          <SearchBox initialQuery={query} />
+        </div>
+        <p className="mt-3 font-[family-name:var(--mono)] text-[10px] uppercase tracking-[0.12em] text-[var(--muted)]">
+          {query
+            ? `${posts.length} ${posts.length === 1 ? 'result' : 'results'} for “${query}”`
+            : 'Titles, summaries, tags and the full text of every entry'}
         </p>
-      ) : (
-        <p className="mt-4 text-[var(--color-muted)]">
-          Search across titles, summaries, tags, and the full text of every post.
-        </p>
-      )}
+      </section>
 
       {matchingTags.length > 0 ? (
-        <div className="mt-6">
-          <p className="text-xs font-semibold uppercase tracking-wider text-[var(--color-muted)]">
+        <section className="border-b-2 border-[var(--soft)] py-3.5">
+          <p className="mb-2 font-[family-name:var(--mono)] text-[10px] uppercase tracking-[0.12em] text-[var(--muted)]">
             Matching topics
           </p>
-          <div className="mt-2 flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2">
             {matchingTags.map(({ tag, count }) => (
               <Link
                 key={tag}
                 href={`/tag/${encodeURIComponent(tag)}`}
-                className="rounded-full bg-[var(--color-raised)] px-3 py-1 text-sm hover:opacity-80"
+                className="tag tag-neutral font-[family-name:var(--mono)] text-[10px] uppercase tracking-[0.1em] no-underline"
               >
-                {tag} <span className="text-[var(--color-muted)]">{count}</span>
+                {tag} {count}
               </Link>
             ))}
           </div>
-        </div>
+        </section>
       ) : null}
 
-      <div className="mt-6">
+      <div className="pb-12">
         {query && posts.length === 0 ? (
-          <div className="border-t border-[var(--color-rule)] py-16 text-[var(--color-muted)]">
+          <div className="py-16 text-[var(--muted)]">
             <p>Nothing matched that.</p>
             <p className="mt-2 text-sm">
               Try a single word, or{' '}
-              <Link href="/" className="text-[var(--color-accent)] underline">
+              <Link href="/" className="text-[var(--accent-text)] underline">
                 browse everything
               </Link>
               .
             </p>
           </div>
         ) : (
-          posts.map((post) => <PostCard key={post.id} post={post} />)
+          posts.map((post, index) => (
+            <PostCard key={post.id} post={post} number={entryNumber(index, posts.length)} />
+          ))
         )}
-      </div>
 
-      {!query && tags.length > 0 ? (
-        <div className="mt-8 border-t border-[var(--color-rule)] pt-8">
-          <p className="text-xs font-semibold uppercase tracking-wider text-[var(--color-muted)]">
-            All topics
-          </p>
-          <div className="mt-3 flex flex-wrap gap-2">
-            {tags.map(({ tag, count }) => (
-              <Link
-                key={tag}
-                href={`/tag/${encodeURIComponent(tag)}`}
-                className="rounded-full bg-[var(--color-raised)] px-3 py-1 text-sm hover:opacity-80"
-              >
-                {tag} <span className="text-[var(--color-muted)]">{count}</span>
-              </Link>
-            ))}
-          </div>
-        </div>
-      ) : null}
+        {!query && tags.length > 0 ? (
+          <section className="pt-8">
+            <p className="mb-3 font-[family-name:var(--mono)] text-[10px] uppercase tracking-[0.12em] text-[var(--muted)]">
+              All topics
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {tags.map(({ tag, count }) => (
+                <Link
+                  key={tag}
+                  href={`/tag/${encodeURIComponent(tag)}`}
+                  className="tag tag-neutral font-[family-name:var(--mono)] text-[10px] uppercase tracking-[0.1em] no-underline"
+                >
+                  {tag} {count}
+                </Link>
+              ))}
+            </div>
+          </section>
+        ) : null}
+      </div>
     </div>
   );
 }

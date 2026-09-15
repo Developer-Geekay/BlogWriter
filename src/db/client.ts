@@ -127,6 +127,10 @@ async function ensureIndexes(database: Db): Promise<void> {
       .collection('posts')
       .createIndex({ title: 'text', excerpt: 'text', body: 'text' }, { name: 'post_text' }),
     database.collection('users').createIndex({ email: 1 }, { unique: true }),
+    // Read counters are always queried as "everything since a date", and the
+    // per-post rollup groups by slug within that window.
+    database.collection('views').createIndex({ date: 1 }),
+    database.collection('views').createIndex({ slug: 1, date: 1 }),
   ]);
 }
 

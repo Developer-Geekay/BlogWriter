@@ -5,6 +5,8 @@ import {
   readingTimeMinutes,
   type Post,
   type PostCreate,
+  type PostKind,
+  type PostMaturity,
   type PostStatus,
   type PostUpdate,
 } from './types.js';
@@ -18,6 +20,8 @@ interface PostDocument {
   coverImage: string | null;
   tags: string[];
   status: PostStatus;
+  kind: PostKind;
+  maturity: PostMaturity;
   readingTime: number;
   createdAt: Date;
   updatedAt: Date;
@@ -45,6 +49,11 @@ function toPost(doc: WithId<PostDocument>): Post {
     coverImage: doc.coverImage ?? null,
     tags: doc.tags ?? [],
     status: doc.status,
+    // Nullish rather than required: documents written before these fields
+    // existed have neither, and the schema defaults would not see a missing
+    // key here because the object is built explicitly.
+    kind: doc.kind ?? 'notes',
+    maturity: doc.maturity ?? 'seed',
     readingTime: doc.readingTime ?? readingTimeMinutes(doc.body ?? ''),
     createdAt: iso(doc.createdAt) ?? new Date().toISOString(),
     updatedAt: iso(doc.updatedAt) ?? new Date().toISOString(),
@@ -191,6 +200,8 @@ export class PostStore implements PostReadWrite {
       coverImage: input.coverImage,
       tags: input.tags,
       status: input.status,
+      kind: input.kind,
+      maturity: input.maturity,
       readingTime: readingTimeMinutes(input.body),
       createdAt: now,
       updatedAt: now,
@@ -222,6 +233,8 @@ export class PostStore implements PostReadWrite {
     if (patch.excerpt !== undefined) set.excerpt = patch.excerpt;
     if (patch.coverImage !== undefined) set.coverImage = patch.coverImage;
     if (patch.tags !== undefined) set.tags = patch.tags;
+    if (patch.kind !== undefined) set.kind = patch.kind;
+    if (patch.maturity !== undefined) set.maturity = patch.maturity;
     if (patch.sources !== undefined) set.sources = patch.sources;
     if (patch.unsupportedClaims !== undefined) set.unsupportedClaims = patch.unsupportedClaims;
     if (patch.body !== undefined) {

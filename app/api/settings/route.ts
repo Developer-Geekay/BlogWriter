@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { SettingsStore } from '@/src/db/settings';
 import { requireSession } from '@/src/auth/guard';
 import { storageFailure } from '@/src/api/errors';
+import { ACCENT_IDS } from '@/src/theme/accents';
 
 export const runtime = 'nodejs';
 
@@ -10,6 +11,11 @@ const SettingsPatchSchema = z.object({
   siteTitle: z.string().trim().min(1).optional(),
   siteDescription: z.string().trim().optional(),
   siteAuthor: z.string().trim().optional(),
+  siteRole: z.string().trim().optional(),
+  // Constrained to the palette: an unknown id would fall back at render time
+  // and silently ignore the change instead of reporting it.
+  siteAccent: z.enum(ACCENT_IDS).optional(),
+  siteBio: z.string().trim().optional(),
   mcpEnabled: z.boolean().optional(),
   mcpAllowPublish: z.boolean().optional(),
   /** Ask for a brand new bearer token; the previous one stops working at once. */

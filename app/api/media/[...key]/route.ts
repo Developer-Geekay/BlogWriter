@@ -1,0 +1,70 @@
+import { NextResponse } from 'next/server';
+import { requireSession } from '@/src/auth/guard';
+import { MediaError, MediaStore, asMediaError, mediaConfig } from '@/src/media/store';
+
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
+type Context = { params: Promise<{ key: string[] }> };
+
+/**
+ * Serve an object through the app rather than linking at the bucket.
+ *
+ * Two reasons. A cover image URL is stored on a post and outlives any signature,
+ * so a presigned link would rot; and the bucket itself can stay closed, with
+ * this route the only way in. The cost is that image bytes pass through the
+ * Node process — fine at this scale, and the place to add a CDN later.
+ */
+export async function GET(_request: Request, { params }: Context) {
+  const { key: segments } = await params;
+  const key = segments.map(decodeURIComponent).join('/');
+
+  if (!mediaConfig()) {
+    return NextResponse.json({ error: 'Object storage is not configured.' }, { status: 404 });
+  }
+
+  try {
+    const object = await MediaStore.open().get(key);
+    if (!object) return NextResponse.json({ error: 'Not found.' }, { status: 404 });
+
+    return new Response(object.body, {
+      headers: {
+        'Content-Type': object.contentType,
+        ...(object.contentLength !== undefined
+          ? { 'Content-Length': String(object.contentLength) }
+          : {}),
+        // Keys carry a random segment and are never reused, so a response can
+        // be cached hard — replacing an image means a new key.
+        'Cache-Control': 'public, max-age=31536000, immutable',
+        // Belt and braces on top of the upload allow-list: never let the
+        // browser re-interpret these bytes as something executable, and give
+        // the response no privileges of its own if it is opened directly.
+        'X-Content-Type-Options': 'nosniff',
+        'Content-Security-Policy': "default-src 'none'; sandbox",
+      },
+    });
+  } catch (err) {
+    if (err instanceof MediaError) {
+      return NextResponse.json({ error: err.message }, { status: 400 });
+    }
+    return NextResponse.json({ error: asMediaError(err).message }, { status: 503 });
+  }
+}
+
+export async function DELETE(_request: Request, { params }: Context) {
+  const auth = await requireSession();
+  if (!auth.ok) return auth.response;
+
+  const { key: segments } = await params;
+  const key = segments.map(decodeURIComponent).join('/');
+
+  try {
+    await MediaStore.open().delete(key);
+    return NextResponse.json({ ok: true });
+  } catch (err) {
+    if (err instanceof MediaError) {
+      return NextResponse.json({ error: err.message }, { status: 400 });
+    }
+    return NextResponse.json({ error: asMediaError(err).message }, { status: 503 });
+  }
+}
