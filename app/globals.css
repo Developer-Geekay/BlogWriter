@@ -121,6 +121,76 @@
 }
 
 /*
+ * Syntax highlighting.
+ *
+ * Written against the design system's own palette rather than importing one of
+ * highlight.js's themes, every one of which arrives with its own background,
+ * its own idea of a foreground, and a rainbow that would fight a system built
+ * on a single accent.
+ *
+ * Restrained on purpose: three signals, not twelve. Comments recede, keywords
+ * take the accent, and literals take the system's second accent — the one pair
+ * the design already uses together. Everything else stays ink, because code is
+ * mostly identifiers and colouring them all is noise.
+ *
+ * `--color-accent-2` is fixed rather than following the operator's accent
+ * choice, so strings keep a stable hue whichever accent is selected.
+ */
+.hljs-comment,
+.hljs-quote {
+  color: var(--muted);
+  font-style: italic;
+}
+
+.hljs-keyword,
+.hljs-selector-tag,
+.hljs-built_in,
+.hljs-literal,
+.hljs-type,
+.hljs-meta {
+  color: var(--accent-text);
+  font-weight: 600;
+}
+
+.hljs-string,
+.hljs-number,
+.hljs-regexp,
+.hljs-symbol,
+.hljs-attr,
+.hljs-addition {
+  color: var(--color-accent-2-700);
+}
+
+[data-theme='dark'] .hljs-string,
+[data-theme='dark'] .hljs-number,
+[data-theme='dark'] .hljs-regexp,
+[data-theme='dark'] .hljs-symbol,
+[data-theme='dark'] .hljs-attr,
+[data-theme='dark'] .hljs-addition {
+  /* The 700 step is far too dark against #141312. */
+  color: var(--color-accent-2-300);
+}
+
+.hljs-title,
+.hljs-section,
+.hljs-name {
+  font-weight: 600;
+}
+
+.hljs-deletion {
+  color: var(--muted);
+  text-decoration: line-through;
+}
+
+.hljs-emphasis {
+  font-style: italic;
+}
+
+.hljs-strong {
+  font-weight: 700;
+}
+
+/*
  * Long-form reading.
  *
  * Archivo at a comfortable measure — the serif stack this replaced belonged to

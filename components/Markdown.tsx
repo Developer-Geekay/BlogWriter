@@ -1,8 +1,10 @@
 import type { ReactNode } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import rehypeHighlight from 'rehype-highlight';
 import { CodeBlock } from '@/components/CodeBlock';
 import { headingId } from '@/src/content/outline';
+import { rehypeCodeMeta } from '@/src/content/code-meta';
 
 /**
  * Anchor id for a rendered heading, matching what `extractOutline` computed for
@@ -31,6 +33,18 @@ export function Markdown({ children }: { children: string }) {
     <div className="article-body">
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
+        /*
+         * Order matters: the fence convention is normalised first, then
+         * highlighted. `ignoreMissing` keeps a language highlight.js does not
+         * know — or a plain ``` fence — rendering as plain code instead of
+         * throwing and taking the whole entry down.
+         *
+         * Highlighting is applied here rather than in the browser, so a reader
+         * gets coloured HTML from the server with no client-side cost. The
+         * library only reaches a bundle because the editor preview, a client
+         * component, renders through this same component.
+         */
+        rehypePlugins={[rehypeCodeMeta, [rehypeHighlight, { ignoreMissing: true }]]}
         components={{
           // An H1 in the body is demoted: the post title is already the page's
           // only H1, and a second one breaks the document outline.

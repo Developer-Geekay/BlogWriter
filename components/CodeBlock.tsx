@@ -54,17 +54,35 @@ export function CodeBlock({ children }: { children: ReactNode }) {
  * nests inside every `<pre>`.
  */
 function read(children: ReactNode): { label: string; text: string } {
-  if (!isValidElement<{ className?: string; children?: ReactNode }>(children)) {
+  if (
+    !isValidElement<{ className?: string; children?: ReactNode; 'data-filename'?: string }>(
+      children,
+    )
+  ) {
     return { label: 'CODE', text: '' };
   }
 
   const className = children.props.className ?? '';
-  const info = /language-([^\s]+)/.exec(className)?.[1] ?? '';
-  // `go:worker.go` — the part after the colon is a filename, and it wins.
-  const [language, filename] = info.split(':');
+  const language = /language-([^\s]+)/.exec(className)?.[1] ?? '';
+  // Split off the `lang:filename` convention upstream, by rehypeCodeMeta, so
+  // that highlighting sees a language it recognises. The filename it set aside
+  // is the better label when there is one.
+  const filename = children.props['data-filename'] ?? '';
 
-  const raw = children.props.children;
-  const text = typeof raw === 'string' ? raw : Array.isArray(raw) ? raw.join('') : '';
+  return {
+    label: filename || (language === 'plaintext' ? '' : language) || 'CODE',
+    // Highlighting replaces the plain string child with a tree of coloured
+    // spans, so the text for the clipboard has to be gathered from all of it
+    // rather than read off a single child.
+    text: textOf(children.props.children),
+  };
+}
 
-  return { label: filename || language || 'CODE', text };
+/** Flatten a highlighted node tree back to the source the author wrote. */
+function textOf(node: ReactNode): string {
+  if (typeof node === 'string') return node;
+  if (typeof node === 'number') return String(node);
+  if (Array.isArray(node)) return node.map(textOf).join('');
+  if (isValidElement<{ children?: ReactNode }>(node)) return textOf(node.props.children);
+  return '';
 }
