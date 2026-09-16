@@ -19,8 +19,10 @@ const nextConfig: NextConfig = {
   // `next start`: Next refuses to run `next start` against a standalone build.
   output: 'standalone',
 
-  // The Mongo driver and bcrypt are server-only; keep them out of client bundles.
-  serverExternalPackages: ['mongodb', 'bcryptjs'],
+  // Server-only, and the first two are native. Bundling sharp breaks it — its
+  // platform binaries have to be resolved from node_modules at runtime, which
+  // is also how the standalone trace picks them up for `release/`.
+  serverExternalPackages: ['mongodb', 'bcryptjs', 'sharp'],
 
   /**
    * Entries moved from /blog/:slug to /entry/:slug.

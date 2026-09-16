@@ -185,6 +185,36 @@ export class MediaStore {
     await this.client.send(new DeleteObjectCommand({ Bucket: this.bucket, Key: key }));
   }
 
+  /**
+   * The object as bytes, for when it has to be transformed before it is served.
+   *
+   * Separate from `get` on purpose: resizing needs the whole image in memory,
+   * and the common path — serving the object untouched — should not pay for
+   * that. Callers pick the one that matches what they are about to do.
+   */
+  async getBytes(
+    key: string,
+  ): Promise<{ bytes: Uint8Array<ArrayBuffer>; contentType: string } | null> {
+    assertSafeKey(key);
+    try {
+      const res = await this.client.send(new GetObjectCommand({ Bucket: this.bucket, Key: key }));
+      if (!res.Body) return null;
+      const raw = await res.Body.transformToByteArray();
+      // Owns its memory, so it is a valid Response body — see the note in
+      // src/media/resize.ts.
+      const bytes = new Uint8Array(raw.byteLength);
+      bytes.set(raw);
+      return {
+        bytes,
+        contentType: res.ContentType ?? 'application/octet-stream',
+      };
+    } catch (err) {
+      const name = (err as { name?: string }).name;
+      if (name === 'NoSuchKey' || name === 'NotFound') return null;
+      throw err;
+    }
+  }
+
   /** The object as a web stream, for the proxy route to pipe straight through. */
   async get(key: string): Promise<{
     body: ReadableStream;
