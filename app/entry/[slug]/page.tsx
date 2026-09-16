@@ -116,7 +116,21 @@ export default async function PostPage({ params }: Props) {
           the surplus fall to the right of the article, which is where flush-left
           layout wants it.
         */}
-        <aside className="sticky top-[104px] min-w-0 self-start py-6 pr-5 [flex:0_1_280px]">
+        {/*
+          Hidden below lg, and only sticky above it.
+
+          Both halves matter. Stacked, the rail sat above the article inside the
+          same tall container, and `position: sticky` kept it pinned at the top
+          of the viewport while the article scrolled underneath — so the
+          contents list was drawn straight over the prose. Sticky does not
+          reserve space once it lifts off, and nothing reflows around it.
+
+          Hiding it on a phone is the right answer regardless: a contents list
+          for a long entry is most of a small screen before a word of the entry
+          appears. The tags it also carries are repeated at the foot of the
+          article, so nothing is lost with the rail.
+        */}
+        <aside className="hidden min-w-0 self-start py-6 pr-5 lg:sticky lg:top-[104px] lg:block lg:[flex:0_1_280px]">
           {outline.length > 0 ? (
             <>
               <p className="mb-2.5 font-[family-name:var(--mono)] text-[10px] uppercase tracking-[0.12em] text-[var(--muted)]">
@@ -162,7 +176,9 @@ export default async function PostPage({ params }: Props) {
             at 1160px, so the article tops out around 800px on a desktop. A 72ch
             cap on top of that stopped the text well short of the rule above it
             and left a quarter of the row empty. */}
-        <article className="min-w-0 border-l-2 border-[var(--soft)] pl-7 pt-6 [flex:3_1_440px]">
+        {/* The dividing rule and its gutter belong to the two-column layout;
+            with the rail hidden there is nothing to divide from. */}
+        <article className="min-w-0 pt-6 lg:border-l-2 lg:border-[var(--soft)] lg:pl-7 lg:[flex:3_1_440px]">
           {post.coverImage ? (
             // A remote cover URL can be any host, so use a plain <img> rather
             // than next/image, which would need every domain allow-listed.
@@ -191,6 +207,27 @@ export default async function PostPage({ params }: Props) {
                   </li>
                 ))}
               </ul>
+            </section>
+          ) : null}
+
+          {/* The tags again, for the screens where the rail that carries them
+              is hidden. Below lg only, so they are never shown twice. */}
+          {post.tags.length > 0 ? (
+            <section className="mt-10 border-t-2 border-[var(--soft)] pt-6 lg:hidden">
+              <h2 className="mb-3 font-[family-name:var(--mono)] text-[10px] uppercase tracking-[0.12em] text-[var(--muted)]">
+                Filed under
+              </h2>
+              <div className="flex flex-wrap gap-1.5">
+                {post.tags.map((tag) => (
+                  <Link
+                    key={tag}
+                    href={`/tag/${encodeURIComponent(tag)}`}
+                    className="border-2 border-[var(--soft)] px-1.5 py-0.5 font-[family-name:var(--mono)] text-[10px] uppercase tracking-[0.08em] text-[var(--muted)] no-underline hover:border-[var(--accent)] hover:text-[var(--ink)]"
+                  >
+                    {tag}
+                  </Link>
+                ))}
+              </div>
             </section>
           ) : null}
 

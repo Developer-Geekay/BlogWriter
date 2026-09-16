@@ -3,6 +3,7 @@ import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import { buildMcpServer } from '../src/mcp/server.js';
+import type { AnalyticsReadonly, MediaReadonly } from '../src/mcp/server.js';
 import { ProfileSchema, TopicsSchema } from '../src/config/schema.js';
 import { MemoryPostStore } from './helpers/memory-store.js';
 
@@ -19,8 +20,14 @@ const topics = TopicsSchema.parse({ themes: ['retrieval'], backlog: ['context wi
 
 const BODY = 'A body with comfortably more than ten words in it, to clear the minimum.';
 
-/** Stand-in analytics, so the tool can be exercised without a database. */
-const fakeAnalytics = {
+/**
+ * Stand-in analytics, so the tool can be exercised without a database.
+ *
+ * Typed against the interface rather than inferred, so a variant returning a
+ * null finish rate is still assignable — and so the fake cannot drift from the
+ * shape the real store has to satisfy.
+ */
+const fakeAnalytics: AnalyticsReadonly = {
   totals: async () => ({ reads: 120, finishes: 60, finishRate: 50 }),
   topPosts: async (_days: number, limit = 5) =>
     [
@@ -30,7 +37,7 @@ const fakeAnalytics = {
   sources: async () => ({ search: 70, referral: 30, direct: 20 }),
 };
 
-const fakeMedia = {
+const fakeMedia: MediaReadonly = {
   list: async () => [{ key: '2026/09/abc-cover.png', size: 2048, lastModified: null }],
 };
 
@@ -38,8 +45,8 @@ async function connect(
   options: {
     allowPublish?: boolean;
     withProfile?: boolean;
-    analytics?: typeof fakeAnalytics | { list?: never };
-    media?: { list: () => Promise<{ key: string; size: number; lastModified: string | null }[]> };
+    analytics?: AnalyticsReadonly;
+    media?: MediaReadonly;
   } = {},
 ) {
   const posts = new MemoryPostStore();
@@ -48,7 +55,7 @@ async function connect(
     ...(options.withProfile === false ? {} : { profile, topics }),
     allowPublish: options.allowPublish ?? false,
     siteUrl: 'https://example.com',
-    ...(options.analytics ? { analytics: options.analytics as never } : {}),
+    ...(options.analytics ? { analytics: options.analytics } : {}),
     ...(options.media ? { media: options.media } : {}),
   });
   const client = new Client({ name: 'test-client', version: '0.0.0' });
