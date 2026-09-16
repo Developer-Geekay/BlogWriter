@@ -2,6 +2,8 @@ import { timingSafeEqual } from 'node:crypto';
 import { WebStandardStreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js';
 import { PostStore } from '@/src/db/posts';
 import { SettingsStore } from '@/src/db/settings';
+import { ViewStore } from '@/src/db/views';
+import { MediaStore, mediaConfig } from '@/src/media/store';
 import { buildMcpServer } from '@/src/mcp/server';
 import { loadConfig } from '@/src/config/load';
 import type { Profile, Topics } from '@/src/config/schema';
@@ -73,12 +75,19 @@ async function handle(request: Request): Promise<Response> {
   }
 
   const { profile, topics } = await voiceGuide();
+
+  // Media is only offered when object storage is actually configured, so a
+  // connected model is never shown a tool that can only fail.
+  const media = mediaConfig() ? MediaStore.open() : undefined;
+
   const server = buildMcpServer({
     posts: await PostStore.open(),
     ...(profile ? { profile } : {}),
     ...(topics ? { topics } : {}),
     allowPublish: settings.mcpAllowPublish,
     ...(process.env['SITE_URL'] ? { siteUrl: process.env['SITE_URL'] } : {}),
+    analytics: await ViewStore.open(),
+    ...(media ? { media } : {}),
   });
 
   // Stateless: a fresh server and transport per request, so concurrent external

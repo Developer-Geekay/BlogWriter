@@ -6,6 +6,8 @@ import { loadConfig, ConfigError, requireEnv } from './config/load.js';
 import { PostStore } from './db/posts.js';
 import { SettingsStore } from './db/settings.js';
 import { UserStore } from './db/users.js';
+import { ViewStore } from './db/views.js';
+import { MediaStore, mediaConfig } from './media/store.js';
 import { closeDb, describeConnection, DatabaseError } from './db/client.js';
 import { serveStdio } from './mcp/transport.js';
 import { runAuthFlow } from './publishers/linkedin-auth.js';
@@ -43,12 +45,18 @@ program
       /* no voice guide available */
     }
 
+    // Same surface as the HTTP endpoint: read analytics always, media only when
+    // object storage is configured.
+    const media = mediaConfig() ? MediaStore.open() : undefined;
+
     await serveStdio({
       posts: await PostStore.open(),
       ...(profile ? { profile } : {}),
       ...(topics ? { topics } : {}),
       allowPublish: opts.allowPublish || settings.mcpAllowPublish,
       ...(process.env['SITE_URL'] ? { siteUrl: process.env['SITE_URL'] } : {}),
+      analytics: await ViewStore.open(),
+      ...(media ? { media } : {}),
     });
   });
 

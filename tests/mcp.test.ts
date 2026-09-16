@@ -19,13 +19,37 @@ const topics = TopicsSchema.parse({ themes: ['retrieval'], backlog: ['context wi
 
 const BODY = 'A body with comfortably more than ten words in it, to clear the minimum.';
 
-async function connect(options: { allowPublish?: boolean; withProfile?: boolean } = {}) {
+/** Stand-in analytics, so the tool can be exercised without a database. */
+const fakeAnalytics = {
+  totals: async () => ({ reads: 120, finishes: 60, finishRate: 50 }),
+  topPosts: async (_days: number, limit = 5) =>
+    [
+      { slug: 'first-post', reads: 90 },
+      { slug: 'gone-missing', reads: 30 },
+    ].slice(0, limit),
+  sources: async () => ({ search: 70, referral: 30, direct: 20 }),
+};
+
+const fakeMedia = {
+  list: async () => [{ key: '2026/09/abc-cover.png', size: 2048, lastModified: null }],
+};
+
+async function connect(
+  options: {
+    allowPublish?: boolean;
+    withProfile?: boolean;
+    analytics?: typeof fakeAnalytics | { list?: never };
+    media?: { list: () => Promise<{ key: string; size: number; lastModified: string | null }[]> };
+  } = {},
+) {
   const posts = new MemoryPostStore();
   const server = buildMcpServer({
     posts,
     ...(options.withProfile === false ? {} : { profile, topics }),
     allowPublish: options.allowPublish ?? false,
     siteUrl: 'https://example.com',
+    ...(options.analytics ? { analytics: options.analytics as never } : {}),
+    ...(options.media ? { media: options.media } : {}),
   });
   const client = new Client({ name: 'test-client', version: '0.0.0' });
   const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
@@ -61,7 +85,14 @@ describe('tool surface', () => {
     const { client } = await connect();
     const names = (await client.listTools()).tools.map((t) => t.name).sort();
 
-    expect(names).toEqual(['create_post', 'get_post', 'get_voice_guide', 'list_posts', 'update_post']);
+    expect(names).toEqual([
+      'create_post',
+      'get_post',
+      'get_voice_guide',
+      'list_posts',
+      'list_topics',
+      'update_post',
+    ]);
   });
 
   it('adds set_post_status and delete_post when publishing is allowed', async () => {
@@ -373,5 +404,121 @@ describe('list_posts and get_post', () => {
 
     expect(result.isError).toBe(true);
     expect(resultText(result)).toContain('slug or an id');
+  });
+});
+
+describe('list_topics', () => {
+  it('reports tags in use on published entries, most used first', async () => {
+    const { client, posts } = await connect({ allowPublish: true });
+    const a = await seed(client, 'One', { tags: ['kubernetes', 'go'] });
+    const b = await seed(client, 'Two', { tags: ['kubernetes'] });
+    await call(client, 'set_post_status', { id: a, status: 'published' });
+    await call(client, 'set_post_status', { id: b, status: 'published' });
+    void posts;
+
+    const result = JSON.parse(resultText(await call(client, 'list_topics')));
+
+    expect(result.topics).toEqual([
+      { tag: 'kubernetes', count: 2 },
+      { tag: 'go', count: 1 },
+    ]);
+  });
+
+  it('ignores drafts, which are not on the public topic map', async () => {
+    const { client } = await connect();
+    await seed(client, 'Unpublished', { tags: ['secret' ] });
+
+    const result = JSON.parse(resultText(await call(client, 'list_topics')));
+
+    expect(result.topics).toEqual([]);
+  });
+});
+
+describe('get_analytics', () => {
+  it('is absent when no analytics store is wired in', async () => {
+    const { client } = await connect();
+    const names = (await client.listTools()).tools.map((t) => t.name);
+
+    expect(names).not.toContain('get_analytics');
+  });
+
+  it('reports reads, finish rate and where readers came from', async () => {
+    const { client } = await connect({ analytics: fakeAnalytics });
+    const result = JSON.parse(resultText(await call(client, 'get_analytics', { days: 30 })));
+
+    expect(result.reads).toBe(120);
+    expect(result.finishRatePercent).toBe(50);
+    expect(result.sources).toEqual({ search: 70, referral: 30, direct: 20 });
+  });
+
+  it('names the top entries instead of only their slugs', async () => {
+    const { client } = await connect({ allowPublish: true, analytics: fakeAnalytics });
+    const id = await seed(client, 'First Post');
+    await call(client, 'set_post_status', { id, status: 'published' });
+
+    const result = JSON.parse(resultText(await call(client, 'get_analytics', {})));
+
+    expect(result.topEntries[0]).toMatchObject({ slug: 'first-post', title: 'First Post' });
+    // A slug with no matching post — renamed or deleted since it was read —
+    // falls back to the slug rather than dropping the row or crashing.
+    expect(result.topEntries[1]).toMatchObject({ slug: 'gone-missing', title: 'gone-missing' });
+  });
+
+  it('says so when the window is empty rather than implying nobody finishes', async () => {
+    const empty = {
+      ...fakeAnalytics,
+      totals: async () => ({ reads: 0, finishes: 0, finishRate: null }),
+      topPosts: async () => [],
+    };
+    const { client } = await connect({ analytics: empty });
+    const result = JSON.parse(resultText(await call(client, 'get_analytics', {})));
+
+    expect(result.finishRatePercent).toBeNull();
+    expect(result.note).toContain('No reads recorded');
+  });
+});
+
+describe('list_media', () => {
+  it('is absent when object storage is not configured', async () => {
+    const { client } = await connect();
+    const names = (await client.listTools()).tools.map((t) => t.name);
+
+    expect(names).not.toContain('list_media');
+  });
+
+  it('gives an absolute URL that can be pasted straight into coverImage', async () => {
+    const { client } = await connect({ media: fakeMedia });
+    const result = JSON.parse(resultText(await call(client, 'list_media', {})));
+
+    expect(result.media[0].url).toBe('https://example.com/api/media/2026/09/abc-cover.png');
+  });
+
+  it('reports a storage outage in-band instead of failing the call', async () => {
+    const broken = {
+      list: async () => {
+        throw new Error('connect ECONNREFUSED');
+      },
+    };
+    const { client } = await connect({ media: broken });
+    const result = await call(client, 'list_media', {});
+
+    expect(result.isError).toBe(true);
+    expect(resultText(result)).toContain('Could not reach object storage');
+  });
+});
+
+describe('sources on update_post', () => {
+  it('lets a revision add the citations the draft was missing', async () => {
+    const { client, posts } = await connect();
+    const id = await seed(client, 'Needs Sources');
+
+    await call(client, 'update_post', {
+      id,
+      sources: [{ url: 'https://example.com/paper', title: 'The paper' }],
+      unsupportedClaims: [],
+    });
+
+    const post = await posts.findById(id);
+    expect(post!.sources).toEqual([{ url: 'https://example.com/paper', title: 'The paper' }]);
   });
 });

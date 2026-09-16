@@ -100,6 +100,8 @@ export interface PostReadWrite {
   list(options?: ListOptions): Promise<Post[]>;
   findBySlug(slug: string): Promise<Post | null>;
   findById(id: string): Promise<Post | null>;
+  /** Tags in use on published posts, most used first. */
+  tags(): Promise<{ tag: string; count: number }[]>;
   create(input: PostCreate): Promise<Post>;
   update(id: string, patch: PostUpdate): Promise<Post>;
   delete(id: string): Promise<void>;
