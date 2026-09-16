@@ -110,7 +110,7 @@ export function CommandPalette() {
       close();
       // A draft has no public URL, so for the author it opens where it can
       // actually be read: the editor.
-      router.push(post.status === 'published' ? `/blog/${post.slug}` : `/admin/posts/${post.id}/edit`);
+      router.push(post.status === 'published' ? `/entry/${post.slug}` : `/admin/posts/${post.id}/edit`);
     },
     [close, router],
   );

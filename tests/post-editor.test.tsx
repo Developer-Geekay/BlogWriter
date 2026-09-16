@@ -120,6 +120,6 @@ describe('PostEditor preview', () => {
     rerender(<PostEditor post={{ ...draft, status: 'published' }} />);
     expect(
       screen.getByRole('link', { name: /View live/ }).getAttribute('href'),
-    ).toBe(`/blog/${draft.slug}`);
+    ).toBe(`/entry/${draft.slug}`);
   });
 });

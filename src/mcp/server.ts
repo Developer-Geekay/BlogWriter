@@ -51,7 +51,7 @@ function summarise(post: Post, siteUrl?: string) {
     updatedAt: post.updatedAt,
     unsupportedClaims: post.unsupportedClaims,
     ...(siteUrl && post.status === 'published'
-      ? { url: `${siteUrl.replace(/\/+$/, '')}/blog/${post.slug}` }
+      ? { url: `${siteUrl.replace(/\/+$/, '')}/entry/${post.slug}` }
       : {}),
   };
 }
@@ -284,7 +284,7 @@ export function buildMcpServer(options: McpServerOptions): McpServer {
           return text(
             `"${post.slug}" is now ${post.status}.` +
               (post.status === 'published' && siteUrl
-                ? ` Live at ${siteUrl.replace(/\/+$/, '')}/blog/${post.slug}`
+                ? ` Live at ${siteUrl.replace(/\/+$/, '')}/entry/${post.slug}`
                 : ''),
           );
         } catch (err) {

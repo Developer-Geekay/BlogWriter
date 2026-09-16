@@ -22,6 +22,24 @@ const nextConfig: NextConfig = {
   // The Mongo driver and bcrypt are server-only; keep them out of client bundles.
   serverExternalPackages: ['mongodb', 'bcryptjs'],
 
+  /**
+   * Entries moved from /blog/:slug to /entry/:slug.
+   *
+   * Permanent, so search engines transfer the ranking rather than treating the
+   * new path as a duplicate, and so anything already shared keeps resolving.
+   *
+   * A redirect rather than a second route: /blog/ no longer serves anything, it
+   * only points at where the entry actually lives. One canonical URL per entry.
+   */
+  async redirects() {
+    return [
+      { source: '/blog/:slug', destination: '/entry/:slug', permanent: true },
+      // There was never a /blog index, but anyone who trims the slug off a old
+      // link should land on the feed rather than a 404.
+      { source: '/blog', destination: '/', permanent: true },
+    ];
+  },
+
   turbopack: {
     resolveExtensions: ['.ts', '.tsx', '.js', '.jsx', '.mjs', '.json'],
   },

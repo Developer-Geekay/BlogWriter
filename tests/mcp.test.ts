@@ -262,7 +262,7 @@ describe('publishing', () => {
     const result = await call(client, 'set_post_status', { id, status: 'published' });
 
     expect(result.isError).toBeFalsy();
-    expect(resultText(result)).toContain('https://example.com/blog/goes-live');
+    expect(resultText(result)).toContain('https://example.com/entry/goes-live');
     const post = await posts.findById(id);
     expect(post!.status).toBe('published');
     expect(post!.publishedAt).not.toBeNull();
@@ -318,7 +318,7 @@ describe('list_posts and get_post', () => {
       all.posts.find((p: { status: string }) => p.status === 'draft'),
     ];
 
-    expect(published.url).toBe('https://example.com/blog/first-post');
+    expect(published.url).toBe('https://example.com/entry/first-post');
     expect(draft.url).toBeUndefined();
   });
 

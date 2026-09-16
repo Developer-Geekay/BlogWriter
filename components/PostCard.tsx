@@ -23,7 +23,7 @@ export function PostCard({ post, number }: { post: Post; number?: string }) {
   return (
     <article className="border-b-2 border-[var(--soft)]">
       <Link
-        href={`/blog/${post.slug}`}
+        href={`/entry/${post.slug}`}
         className="flex flex-wrap items-start gap-x-6 gap-y-2.5 py-5 no-underline hover:bg-[var(--panel)]"
       >
         {/* A fixed rail, not a growing column. With `flex-grow` it took a share

@@ -88,11 +88,11 @@ describe('AnalyticsTracker', () => {
     ready();
     expect(trackVisit).toHaveBeenCalledTimes(1);
 
-    currentPath = '/blog/hello';
+    currentPath = '/entry/hello';
     rerender(<AnalyticsTracker config={config} />);
 
     expect(trackVisit).toHaveBeenCalledTimes(2);
-    expect(trackVisit).toHaveBeenLastCalledWith('/blog/hello');
+    expect(trackVisit).toHaveBeenLastCalledWith('/entry/hello');
     // One init for the lifetime of the page, not one per visit.
     expect(init).toHaveBeenCalledTimes(1);
   });
@@ -118,11 +118,11 @@ describe('AnalyticsTracker', () => {
     expect(trackVisit).not.toHaveBeenCalled();
 
     // Leaving the portal loads it and reports the public page, not the admin one.
-    currentPath = '/blog/hello';
+    currentPath = '/entry/hello';
     rerender(<AnalyticsGate config={config} />);
     ready();
     expect(scriptProps.src).toBe(config.scriptUrl);
-    expect(trackVisit).toHaveBeenCalledExactlyOnceWith('/blog/hello');
+    expect(trackVisit).toHaveBeenCalledExactlyOnceWith('/entry/hello');
   });
 
   it('says so when the SDK has no programmatic API instead of throwing', () => {

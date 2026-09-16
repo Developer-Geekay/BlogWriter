@@ -61,7 +61,7 @@ export default async function AnalyticsPage() {
             <div key={row.slug} className="border-b border-[var(--soft)] py-3">
               <div className="mb-1.5 flex justify-between gap-3">
                 <Link
-                  href={`/blog/${row.slug}`}
+                  href={`/entry/${row.slug}`}
                   className="min-w-0 truncate text-[15px] font-semibold text-[var(--ink)] no-underline hover:text-[var(--accent-text)]"
                 >
                   {/* A slug with no matching post is one that was renamed or

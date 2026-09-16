@@ -84,7 +84,7 @@ describe('resolveAnalytics', () => {
 
 describe('isTrackablePath', () => {
   it('tracks reader-facing pages', () => {
-    for (const path of ['/', '/blog/some-post', '/search', '/tag/testing']) {
+    for (const path of ['/', '/entry/some-post', '/search', '/tag/testing']) {
       expect(isTrackablePath(path)).toBe(true);
     }
   });

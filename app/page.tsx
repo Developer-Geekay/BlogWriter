@@ -97,7 +97,7 @@ export default async function HomePage() {
               {growing.title}
             </p>
             <Link
-              href={`/blog/${growing.slug}`}
+              href={`/entry/${growing.slug}`}
               className="inline-block bg-[var(--ground)] px-3.5 py-2.5 font-[family-name:var(--mono)] text-[11px] uppercase tracking-[0.1em] text-[var(--accent-text)] no-underline hover:opacity-90"
             >
               Read it →

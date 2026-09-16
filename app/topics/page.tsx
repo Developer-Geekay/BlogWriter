@@ -65,7 +65,7 @@ export default async function TopicsPage() {
                   {links.map((post) => (
                     <Link
                       key={post.id}
-                      href={`/blog/${post.slug}`}
+                      href={`/entry/${post.slug}`}
                       className="font-[family-name:var(--mono)] text-[11px] tracking-[0.04em] text-[var(--ink)] no-underline hover:text-[var(--accent-text)]"
                     >
                       → {post.title}

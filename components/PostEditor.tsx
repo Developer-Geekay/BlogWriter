@@ -40,7 +40,7 @@ export function PostEditor({ post }: Props) {
   const [savedAt, setSavedAt] = useState<string | null>(null);
   const [autosaveFailed, setAutosaveFailed] = useState(false);
 
-  // A draft has no public URL — /blog/[slug] 404s until it is published — so
+  // A draft has no public URL — /entry/[slug] 404s until it is published — so
   // this is the only way to see how a post actually reads before committing to
   // it. Rendered through the same Markdown component as the live page, so what
   // you check here is what ships.
@@ -343,7 +343,7 @@ export function PostEditor({ post }: Props) {
             <div className="mt-4 flex flex-wrap items-center gap-3">
               {post.status === 'published' ? (
                 <Link
-                  href={`/blog/${post.slug}`}
+                  href={`/entry/${post.slug}`}
                   target="_blank"
                   className="btn btn-secondary font-[family-name:var(--mono)] text-[10px] uppercase tracking-[0.1em] no-underline"
                 >

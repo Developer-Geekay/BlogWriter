@@ -201,7 +201,7 @@ export default async function PostPage({ params }: Props) {
           <nav className="mt-6 flex flex-wrap gap-2.5 border-t-2 border-[var(--soft)] pt-4">
             {older ? (
               <Link
-                href={`/blog/${older.slug}`}
+                href={`/entry/${older.slug}`}
                 className="btn btn-secondary font-[family-name:var(--mono)] text-[10px] uppercase tracking-[0.1em] no-underline"
               >
                 ← {older.title.slice(0, 40)}
@@ -209,7 +209,7 @@ export default async function PostPage({ params }: Props) {
             ) : null}
             {newer ? (
               <Link
-                href={`/blog/${newer.slug}`}
+                href={`/entry/${newer.slug}`}
                 className="btn btn-secondary ml-auto font-[family-name:var(--mono)] text-[10px] uppercase tracking-[0.1em] no-underline"
               >
                 {newer.title.slice(0, 40)} →

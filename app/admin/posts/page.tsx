@@ -86,7 +86,7 @@ export default async function AdminPostsPage({ searchParams }: Props) {
                 </Link>
                 {post.status === 'published' ? (
                   <Link
-                    href={`/blog/${post.slug}`}
+                    href={`/entry/${post.slug}`}
                     className="btn btn-secondary font-[family-name:var(--mono)] text-[10px] uppercase tracking-[0.1em] no-underline"
                   >
                     View
